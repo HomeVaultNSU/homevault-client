@@ -1,25 +1,22 @@
-#include <cstdlib>
-
 #include <CLI/CLI.hpp>
-
+#include <cstdlib>
 
 void do_list()
 {
-
 }
 
-void setup_list_subcommand(CLI::App& app)
+void setup_list_subcommand(CLI::App &app)
 {
-    CLI::App *list = app.add_subcommand("list", "List all available files on server");
+    CLI::App *list =
+        app.add_subcommand("list", "List all available files on server");
     list->callback(do_list);
 }
 
 void do_upload()
 {
-
 }
 
-void setup_upload_subcommand(CLI::App& app)
+void setup_upload_subcommand(CLI::App &app)
 {
     CLI::App *upload = app.add_subcommand("upload", "Upload file to server");
     upload->callback(do_upload);
@@ -27,10 +24,9 @@ void setup_upload_subcommand(CLI::App& app)
 
 void do_download()
 {
-
 }
 
-void setup_download_subcommand(CLI::App& app)
+void setup_download_subcommand(CLI::App &app)
 {
     CLI::App *upload = app.add_subcommand("upload", "Upload file to server");
     upload->callback(do_upload);

@@ -1,2 +1,8 @@
-BasedOnStyle: Microsoft
+BasedOnStyle: Google
 UseTab: Never
+BreakBeforeBraces: Allman
+IndentWidth: 4
+AccessModifierOffset: -4
+IndentAccessModifiers: false
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortBlocksOnASingleLine: Empty

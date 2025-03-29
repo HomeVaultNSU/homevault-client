@@ -1,8 +1,8 @@
 #ifndef HV_HOMEVAULT_H
 #define HV_HOMEVAULT_H
 
-#include "core/ServerConnection.hpp"
 #include "core/FileInfo.hpp"
-#include "core/Status.hpp"
+#include "core/ServerConnection.hpp"
+#include "core/Result.hpp"
 
-#endif // !HV_HOMEVAULT_H
+#endif  // !HV_HOMEVAULT_H

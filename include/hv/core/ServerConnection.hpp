@@ -5,28 +5,29 @@
 #include <vector>
 
 #include "FileInfo.hpp"
-#include "Status.hpp"
+#include "Result.hpp"
 
 namespace hv
 {
 
-class ServerConnection {
-
+class ServerConnection
+{
 public:
-    ServerConnection(const std::string& ip);
+    ServerConnection(std::string& ip, uint16_t port = 80);
 
-    std::vector<FileInfo> listRemoteFiles();
-    Status upload(const std::filesystem::path& local_path,
-                        const std::filesystem::path& remote_path);
+    ResultValue<std::vector<FileInfo>> listRemoteFiles();
 
-    Status download(const std::filesystem::path& local_path,
-                          const std::filesystem::path& remote_path);
+    Result upload(const std::filesystem::path& local_path,
+                  const std::filesystem::path& remote_path);
+
+    Result download(const std::filesystem::path& local_path,
+                    const std::filesystem::path& remote_path);
 
 private:
     struct impl;
     std::unique_ptr<impl> pImpl;
 };
 
-}
+}  // namespace hv
 
-#endif // !HV_CLIENT_H
+#endif  // !HV_CLIENT_H

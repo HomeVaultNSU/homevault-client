@@ -12,7 +12,6 @@ struct FileInfo
     // other file properties will be placed here
 };
 
+}  // namespace hv
 
-}
-
-#endif // !HV_FILEINFO_H
+#endif  // !HV_FILEINFO_H
