@@ -1,45 +1,48 @@
+#include <CLI/App.hpp>
 #include <CLI/CLI.hpp>
+#include <CLI/Error.hpp>
 #include <cstdlib>
+#include <iostream>
 
-void do_list()
+void print_list()
 {
-}
-
-void setup_list_subcommand(CLI::App &app)
-{
-    CLI::App *list =
-        app.add_subcommand("list", "List all available files on server");
-    list->callback(do_list);
+    std::cout << "listuploaded\n";
 }
 
 void do_upload()
 {
-}
-
-void setup_upload_subcommand(CLI::App &app)
-{
-    CLI::App *upload = app.add_subcommand("upload", "Upload file to server");
-    upload->callback(do_upload);
+    std::cout << "upload done\n";
 }
 
 void do_download()
 {
 }
 
-void setup_download_subcommand(CLI::App &app)
+void SetupSubcommands(CLI::App &app)
 {
-    CLI::App *upload = app.add_subcommand("upload", "Upload file to server");
-    upload->callback(do_upload);
+    app.add_subcommand("list", "List all available files on server")
+        ->callback(print_list);
+    app.add_subcommand("upload", "Upload file to server")->callback(do_upload);
+    app.add_subcommand("download", "Download file from server")
+        ->callback(do_download);
 }
+
+/*
+ *TODO:
+ - how to structure the code files (will main.cpp be outside the cli, core etc.
+ directories?)
+ - will main.cpp be the entry point?
+ - what will be the api between microservices? (will there be an object core
+ that will have method upload or smth? how will it all look like? what's the
+ structure?)
+ * */
 
 int main(int argc, char *argv[])
 {
     CLI::App app{"homevault-cli"};
     app.require_subcommand(1);
 
-    setup_list_subcommand(app);
-    setup_upload_subcommand(app);
-    setup_download_subcommand(app);
+    SetupSubcommands(app);
 
     CLI11_PARSE(app, argc, argv);
 
