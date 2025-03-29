@@ -12,6 +12,11 @@ cmake -B Build
 cmake --build build
 ```
 
+#### Build doxygen documentation
+```
+cmake --build build -t docs
+```
+
 ## Project structure
 - `include` - public headers
 - `cli` - CLI application

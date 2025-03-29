@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(homevault VERSION 1.0.0)
+project(homevault-client VERSION 0.0.1)
 
 include(FindPkgConfig)
 
@@ -10,6 +10,23 @@ option(BUILD_CLI "Build homevault-cli" ON)
 
 find_package(CLI11 CONFIG REQUIRED)
 pkg_check_modules(CURLPP REQUIRED curlpp)
+
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
+    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+
+    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+    
+    add_custom_target(docs
+        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM)
+
+else()
+    message(STATUS "Doxygen not found, documentation will not be built")
+endif()
 
 add_subdirectory(core)
 if (BUILD_CLI)
