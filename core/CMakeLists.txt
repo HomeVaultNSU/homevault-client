@@ -3,6 +3,8 @@ project(homevault-core)
 
 add_library(homevault-core STATIC
     ServerConnection.cpp
+        DirInfo.cpp
+        ../include/hv/core/DirInfo.hpp
 )
 
 target_include_directories(homevault-core

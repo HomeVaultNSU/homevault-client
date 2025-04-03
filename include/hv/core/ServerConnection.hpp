@@ -14,6 +14,7 @@ class ServerConnection
 {
 public:
     ServerConnection(std::string& ip, uint16_t port = 80);
+    ~ServerConnection();
 
     ResultValue<std::vector<FileInfo>> listRemoteFiles();
 

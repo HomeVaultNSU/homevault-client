@@ -11,6 +11,14 @@ struct ServerConnection::impl
     std::string ip;
 };
 
+ServerConnection::~ServerConnection() = default;
+
+ServerConnection::ServerConnection(std::string& ip, uint16_t port)
+{
+    (void)ip;
+    (void)port;
+}
+
 ResultValue<std::vector<FileInfo>> ServerConnection::listRemoteFiles()
 {
     std::vector<FileInfo> fileInfos;
