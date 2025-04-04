@@ -11,6 +11,14 @@ option(BUILD_CLI "Build homevault-cli" ON)
 find_package(CLI11 CONFIG REQUIRED)
 pkg_check_modules(CURLPP REQUIRED curlpp)
 
+include(FetchContent)
+FetchContent_Declare(
+    pugixml
+    GIT_REPOSITORY https://github.com/zeux/pugixml.git
+    GIT_TAG v1.13
+)
+FetchContent_MakeAvailable(pugixml)
+
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
     set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)

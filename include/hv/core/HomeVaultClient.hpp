@@ -2,6 +2,7 @@
 #define HV_CLIENT_H
 
 #include <string>
+#include <filesystem>
 #include <vector>
 
 #include "FileInfo.hpp"
@@ -10,13 +11,17 @@
 namespace hv
 {
 
-class ServerConnection
+class WebDAVClient;
+
+class HomeVaultClient
 {
 public:
-    ServerConnection(std::string& ip, uint16_t port = 80);
-    ~ServerConnection();
+    HomeVaultClient(const std::string& hostname, const std::string& username = "",
+           const std::string& password = "");
 
-    ResultValue<std::vector<FileInfo>> listRemoteFiles();
+    ~HomeVaultClient();
+
+    ResultValue<FileInfo> listRemoteFiles(const std::string& path);
 
     Result upload(const std::filesystem::path& local_path,
                   const std::filesystem::path& remote_path);
@@ -25,8 +30,7 @@ public:
                     const std::filesystem::path& remote_path);
 
 private:
-    struct impl;
-    std::unique_ptr<impl> pImpl;
+    std::unique_ptr<WebDAVClient> m_webdavClient;
 };
 
 }  // namespace hv

@@ -1,20 +1,26 @@
 #include "hv/cli/CLISetup.hpp"
 
-#include <core/ServerConnection.hpp>
+#include <core/HomeVaultClient.hpp>
 #include <iostream>
 #include <vector>
 
 namespace CLISetup
 {
-void PrintList(hv::ServerConnection& server_connection)
+void PrintList(hv::HomeVaultClient& hvClient)
 {
-    (void)server_connection;
-    // server_connection.listRemoteFiles();
-    std::cout << "Files have been listed successfully." << std::endl;
+    hv::ResultValue<hv::FileInfo> result = hvClient.listRemoteFiles("/");
+    if (result.status() == hv::Status::eSuccess)
+    {
+        std::cout << result.value().toTreeString() << "\n";
+    }
+    else
+    {
+        std::cout << result.message() << "\n";
+    }
 }
 
 void Upload(const std::vector<std::string>& files,
-            hv::ServerConnection& server_connection)
+            hv::HomeVaultClient& server_connection)
 {
     (void)files;
     (void)server_connection;
@@ -24,7 +30,7 @@ void Upload(const std::vector<std::string>& files,
 }
 
 void Download(const std::vector<std::string>& files,
-              hv::ServerConnection& server_connection)
+              hv::HomeVaultClient& server_connection)
 {
     (void)server_connection;
     // server_connection.download(std::filesystem::path("~"),
@@ -33,7 +39,7 @@ void Download(const std::vector<std::string>& files,
     std::cout << "Files downloaded successfully" << std::endl;
 }
 
-void SetupSubcommands(CLI::App& app, hv::ServerConnection& server_connection)
+void SetupSubcommands(CLI::App& app, hv::HomeVaultClient& server_connection)
 {
     const auto list =
         app.add_subcommand("list", "List all available files on server");

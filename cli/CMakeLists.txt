@@ -4,9 +4,6 @@ project(homevault-cli)
 add_executable(homevault-cli
         main.cpp
         CLISetup.cpp
-        ../core/DirInfo.cpp
-        ../core/ServerConnection.cpp
-        ../include/hv/core/DirInfo.hpp
 )
 
 target_include_directories(homevault-cli PRIVATE

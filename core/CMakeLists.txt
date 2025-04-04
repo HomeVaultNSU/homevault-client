@@ -2,9 +2,16 @@ cmake_minimum_required(VERSION 3.12)
 project(homevault-core)
 
 add_library(homevault-core STATIC
-    ServerConnection.cpp
-        DirInfo.cpp
-        ../include/hv/core/DirInfo.hpp
+    HomeVaultClient.cpp
+    FileInfo.cpp
+    webdav/WebDAVClient.cpp
+    webdav/WebDAVClient.hpp
+    webdav/WebDAVParser.cpp
+    webdav/WebDAVParser.hpp
+    webdav/WebDAVResponse.cpp
+    webdav/WebDAVResponse.hpp
+    webdav/WebDAVResource.cpp
+    webdav/WebDAVResource.hpp
 )
 
 target_include_directories(homevault-core
@@ -18,6 +25,7 @@ target_include_directories(homevault-core
 
 target_link_libraries(homevault-core PUBLIC 
     ${CURLPP_LDFLAGS}
+    pugixml
 )
 
 target_compile_options(homevault-core PRIVATE 
