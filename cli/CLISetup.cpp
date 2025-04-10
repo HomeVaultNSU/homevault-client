@@ -20,26 +20,22 @@ void PrintList(hv::HomeVaultClient& hvClient)
 }
 
 void Upload(const std::vector<std::string>& files,
-            hv::HomeVaultClient& server_connection)
+            hv::HomeVaultClient& hvClient)
 {
     (void)files;
-    (void)server_connection;
-    // server_connection.upload(std::filesystem::path("~"),
-    //                          std::filesystem::path("~"));
+    (void)hvClient;
     std::cout << "Files uploaded successfully." << std::endl;
 }
 
 void Download(const std::vector<std::string>& files,
-              hv::HomeVaultClient& server_connection)
+              hv::HomeVaultClient& hvClient)
 {
-    (void)server_connection;
-    // server_connection.download(std::filesystem::path("~"),
-    //                            std::filesystem::path("~"));
+    (void)hvClient;
     (void)files;
     std::cout << "Files downloaded successfully" << std::endl;
 }
 
-void SetupSubcommands(CLI::App& app, hv::HomeVaultClient& server_connection)
+void SetupSubcommands(CLI::App& app, hv::HomeVaultClient& hvClient)
 {
     const auto list =
         app.add_subcommand("list", "List all available files on server");
@@ -50,10 +46,10 @@ void SetupSubcommands(CLI::App& app, hv::HomeVaultClient& server_connection)
     upload->allow_extras();
     download->allow_extras();
 
-    list->callback([&server_connection]() { PrintList(server_connection); });
-    upload->callback([upload, &server_connection]()
-                     { Upload(upload->remaining(), server_connection); });
-    download->callback([download, &server_connection]()
-                       { Download(download->remaining(), server_connection); });
+    list->callback([&hvClient]() { PrintList(hvClient); });
+    upload->callback([upload, &hvClient]()
+                     { Upload(upload->remaining(), hvClient); });
+    download->callback([download, &hvClient]()
+                       { Download(download->remaining(), hvClient); });
 }
 }  // namespace CLISetup

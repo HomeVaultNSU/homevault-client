@@ -1,6 +1,5 @@
 #include "WebDAVParser.hpp"
 
-#include <algorithm>
 #include <map>
 #include <sstream>
 

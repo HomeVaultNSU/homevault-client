@@ -9,11 +9,11 @@
 
 std::string get_env_var(std::string const& key)
 {
-    char const* val = std::getenv(key.c_str()); 
+    char const* val = std::getenv(key.c_str());
     return val == NULL ? std::string() : std::string(val);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     CLI::App app{"homevault-cli"};
     app.require_subcommand(1);
@@ -22,9 +22,9 @@ int main(int argc, char *argv[])
     std::string username = get_env_var("HV_USERNAME");
     std::string password = get_env_var("HV_PASSWORD");
 
-    hv::HomeVaultClient hv_client(hostname, username, password);
+    hv::HomeVaultClient hvClient(hostname, username, password);
 
-    CLISetup::SetupSubcommands(app, hv_client);
+    CLISetup::SetupSubcommands(app, hvClient);
 
     CLI11_PARSE(app, argc, argv);
 

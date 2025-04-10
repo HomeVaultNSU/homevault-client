@@ -5,11 +5,8 @@
 #include <curlpp/Options.hpp>
 #include <curlpp/cURLpp.hpp>
 #include <map>
-#include <memory>
 #include <string>
-#include <vector>
 
-#include "WebDAVResource.hpp"
 #include "WebDAVResponse.hpp"
 
 namespace hv
@@ -23,7 +20,8 @@ public:
     ~WebDAVClient();
 
     // WebDAV operations
-    WebDAVResponse propfind(const std::string& path, int depth = 1);
+    WebDAVResponse propfind(const std::string& path);
+    WebDAVResponse propfind(const std::string& path, const std::string& depth);
 
     WebDAVResponse proppatch(const std::string& path,
                              const std::map<std::string, std::string>& props);

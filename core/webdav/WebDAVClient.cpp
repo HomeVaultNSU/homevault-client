@@ -1,11 +1,10 @@
 #include "WebDAVClient.hpp"
 
-#include <algorithm>
 #include <curlpp/Infos.hpp>
 #include <curlpp/cURLpp.hpp>
 #include <sstream>
 
-#include "WebDAVParser.hpp"
+#include "webdav/WebDAVResponse.hpp"
 
 namespace hv
 {
@@ -31,11 +30,16 @@ WebDAVClient::~WebDAVClient()
     curlpp::terminate();
 }
 
-WebDAVResponse WebDAVClient::propfind(const std::string& path, int depth)
+WebDAVResponse WebDAVClient::propfind(const std::string& path)
+{
+    return propfind(path, "0");
+}
+
+WebDAVResponse WebDAVClient::propfind(const std::string& path,
+                                      const std::string& depth)
 {
     std::map<std::string, std::string> headers;
-
-    headers["Depth"] = std::to_string(depth);
+    headers["Depth"] = depth;
 
     std::string requestBody =
         "<?xml version=\"1.0\" encoding=\"utf-8\" ?>"

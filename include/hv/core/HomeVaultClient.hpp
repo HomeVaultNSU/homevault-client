@@ -1,9 +1,8 @@
 #ifndef HV_CLIENT_H
 #define HV_CLIENT_H
 
-#include <string>
 #include <filesystem>
-#include <vector>
+#include <string>
 
 #include "FileInfo.hpp"
 #include "Result.hpp"
@@ -16,8 +15,9 @@ class WebDAVClient;
 class HomeVaultClient
 {
 public:
-    HomeVaultClient(const std::string& hostname, const std::string& username = "",
-           const std::string& password = "");
+    HomeVaultClient(const std::string& hostname,
+                    const std::string& username = "",
+                    const std::string& password = "");
 
     ~HomeVaultClient();
 
