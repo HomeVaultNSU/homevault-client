@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include <core/FileInfo.hpp>
+
 namespace hv
 {
 
@@ -35,6 +37,8 @@ public:
 
     bool isDirectory() const;
     bool isFile() const;
+
+    FileInfo toFileInfo();
 
 private:
     std::string m_href;

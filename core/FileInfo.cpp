@@ -70,10 +70,11 @@ void FileInfo::toTreeStringImpl(std::stringstream& ss, const std::string& prefix
 
     ss << (isDirectory() ? "[D] " : "[F] ") << m_name;
 
-    if (!m_lastModified.empty())
-    {
-        ss << " (" << m_lastModified << ")";
-    }
+    // disable for now cause it looks ugly
+    // if (!m_lastModified.empty())
+    // {
+    //     ss << " (" << m_lastModified << ")";
+    // }
 
     ss << "\n";
 

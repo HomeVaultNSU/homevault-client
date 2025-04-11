@@ -1,3 +1,5 @@
+#include <filesystem>
+#include <stdexcept>
 #include <webdav/WebDAVResource.hpp>
 
 namespace hv
@@ -81,6 +83,27 @@ bool WebDAVResource::isDirectory() const
 bool WebDAVResource::isFile() const
 {
     return m_type == ResourceType::FILE;
+}
+
+FileInfo WebDAVResource::toFileInfo()
+{
+    std::filesystem::path path = getHref();
+
+    switch (m_type)
+    {
+        case ResourceType::FILE:
+            return FileInfo::RegularFile(path.filename(), getLastModified());
+            break;
+
+        case ResourceType::DIRECTORY:
+            return FileInfo::Directory(
+                path.parent_path().filename().string() + "/",
+                getLastModified());
+            break;
+
+        default:
+            throw std::runtime_error("Unknown WebDAV Resource Type");
+    }
 }
 
 }  // namespace hv

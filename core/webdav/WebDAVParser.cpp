@@ -242,6 +242,11 @@ std::string WebDAVParser::ExtractPropertyValue(const pugi::xml_node& propstat,
     pugi::xml_node node = prop.child(("D:" + propName).c_str());
     if (!node)
     {
+        // apache2 webdav server uses lp1 namespace
+        node = prop.child(("lp1:" + propName).c_str());
+    }
+    if (!node)
+    {
         // Try without namespace
         node = prop.child(propName.c_str());
     }
