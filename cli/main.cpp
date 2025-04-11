@@ -24,7 +24,8 @@ int main(int argc, char* argv[])
 
     hv::HomeVaultClient hvClient(hostname, username, password);
 
-    CLISetup::SetupSubcommands(app, hvClient);
+    static CLISetup::CLIStorage cliStorage;
+    CLISetup::SetupSubcommands(app, hvClient, cliStorage);
 
     CLI11_PARSE(app, argc, argv);
 

@@ -6,9 +6,11 @@
 
 namespace CLISetup
 {
-void PrintList(hv::HomeVaultClient& hvClient, int depth)
+void PrintList(hv::HomeVaultClient& hvClient, int depth,
+               CLISetup::CLIStorage& cliStorage)
 {
-    hv::ResultValue<hv::FileInfo> result = hvClient.listRemoteFiles("/", depth);
+    hv::ResultValue<hv::FileInfo> result =
+        hvClient.listRemoteFiles(cliStorage.listPath, depth);
     if (result.status() == hv::Status::eSuccess)
     {
         std::cout << result.value().toTreeString() << "\n";
@@ -35,23 +37,24 @@ void Download(const std::vector<std::string>& files,
     std::cout << "Files downloaded successfully" << std::endl;
 }
 
-void SetupSubcommands(CLI::App& app, hv::HomeVaultClient& hvClient)
+void SetupSubcommands(CLI::App& app, hv::HomeVaultClient& hvClient,
+                      CLISetup::CLIStorage& cliStorage)
 {
     int depth = -1;
     const auto list =
         app.add_subcommand("list", "List all available files on server");
-    list->add_option("-d,--depth", depth,
-                     "Depth of file tree to print (infinite by default)")
-        ->default_val(-1);
-
     auto upload = app.add_subcommand("upload", "Upload file to server");
     auto download = app.add_subcommand("download", "Download file from server");
 
-    list->allow_extras();
-    upload->allow_extras();
-    download->allow_extras();
+    list->add_option("-d,--depth", depth,
+                     "Depth of file tree to print (infinite by default)")
+        ->default_val(-1);
+    list->add_option("path", cliStorage.listPath, "List path")
+        ->default_str("/")
+        ->required(false);
 
-    list->callback([&depth, &hvClient]() { PrintList(hvClient, depth); });
+    list->callback([&depth, &hvClient, &cliStorage]()
+                   { PrintList(hvClient, depth, cliStorage); });
     upload->callback([upload, &hvClient]()
                      { Upload(upload->remaining(), hvClient); });
     download->callback([download, &hvClient]()
