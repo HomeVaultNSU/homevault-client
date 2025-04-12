@@ -40,21 +40,20 @@ void Download(const std::vector<std::string>& files,
 void SetupSubcommands(CLI::App& app, hv::HomeVaultClient& hvClient,
                       CLISetup::CLIStorage& cliStorage)
 {
-    int depth = -1;
     const auto list =
         app.add_subcommand("list", "List all available files on server");
     auto upload = app.add_subcommand("upload", "Upload file to server");
     auto download = app.add_subcommand("download", "Download file from server");
 
-    list->add_option("-d,--depth", depth,
+    list->add_option("-d,--depth", cliStorage.depth,
                      "Depth of file tree to print (infinite by default)")
         ->default_val(-1);
     list->add_option("path", cliStorage.listPath, "List path")
         ->default_str("/")
         ->required(false);
 
-    list->callback([&depth, &hvClient, &cliStorage]()
-                   { PrintList(hvClient, depth, cliStorage); });
+    list->callback([&]()
+                   { PrintList(hvClient, cliStorage.depth, cliStorage); });
     upload->callback([upload, &hvClient]()
                      { Upload(upload->remaining(), hvClient); });
     download->callback([download, &hvClient]()
