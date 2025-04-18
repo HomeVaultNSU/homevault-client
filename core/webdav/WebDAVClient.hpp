@@ -15,6 +15,15 @@ namespace hv
 class WebDAVClient
 {
 public:
+    // Get directory listing
+    WebDAVResponse GetDirectoryListing(const std::string& path = "/",
+                                       int depth = 1);
+    // Upload file
+    WebDAVResponse UploadFile(const std::string& localPath,
+                              const std::string& remotePath);
+    // Download file
+    WebDAVResponse DownloadFile(const std::string& remotePath,
+                                const std::string& localPath);
     WebDAVClient(const std::string& baseUrl, const std::string& username = "",
                  const std::string& password = "");
     ~WebDAVClient();

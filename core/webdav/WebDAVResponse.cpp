@@ -14,6 +14,11 @@ WebDAVResponse::WebDAVResponse(
 {
 }
 
+WebDAVResponse::WebDAVResponse(int statusCode, const std::string& body)
+    : m_statusCode(statusCode), m_body(body)
+{
+}
+
 int WebDAVResponse::getStatusCode() const
 {
     return m_statusCode;

@@ -9,8 +9,7 @@ namespace CLISetup
 void PrintList(hv::HomeVaultClient& hvClient, int depth,
                CLISetup::CLIStorage& cliStorage)
 {
-    hv::ResultValue<hv::FileInfo> result =
-        hvClient.listRemoteFiles(cliStorage.listPath, depth);
+    auto result = hvClient.listRemoteFiles(cliStorage.listPath, depth);
     if (result.status() == hv::Status::eSuccess)
     {
         std::cout << result.value().toTreeString() << "\n";
@@ -24,17 +23,37 @@ void PrintList(hv::HomeVaultClient& hvClient, int depth,
 void Upload(const std::vector<std::string>& files,
             hv::HomeVaultClient& hvClient)
 {
-    (void)files;
-    (void)hvClient;
-    std::cout << "Files uploaded successfully." << std::endl;
+    for (const auto& file : files)
+    {
+        auto result = hvClient.upload(file, "/");
+        if (result.status() != hv::Status::eSuccess)
+        {
+            std::cerr << "Failed to upload " << file << ": " << result.message()
+                      << "\n";
+        }
+        else
+        {
+            std::cout << "Successfully uploaded " << file << "\n";
+        }
+    }
 }
 
 void Download(const std::vector<std::string>& files,
               hv::HomeVaultClient& hvClient)
 {
-    (void)hvClient;
-    (void)files;
-    std::cout << "Files downloaded successfully" << std::endl;
+    for (const auto& file : files)
+    {
+        auto result = hvClient.download(file, ".");
+        if (result.status() != hv::Status::eSuccess)
+        {
+            std::cerr << "Failed to download " << file << ": "
+                      << result.message() << "\n";
+        }
+        else
+        {
+            std::cout << "Successfully downloaded " << file << "\n";
+        }
+    }
 }
 
 void SetupSubcommands(CLI::App& app, hv::HomeVaultClient& hvClient,

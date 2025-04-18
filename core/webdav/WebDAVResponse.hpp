@@ -14,6 +14,7 @@ public:
     WebDAVResponse();
     WebDAVResponse(int statusCode, const std::string& body,
                    const std::map<std::string, std::string>& headers);
+    WebDAVResponse(int statusCode, const std::string& body);
 
     int getStatusCode() const;
     const std::string& getBody() const;

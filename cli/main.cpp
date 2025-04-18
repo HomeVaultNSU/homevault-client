@@ -3,14 +3,22 @@
 #include <CLI/Error.hpp>
 #include <core/HomeVaultClient.hpp>
 #include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <ostream>
 #include <string>
 
 #include "hv/cli/CLISetup.hpp"
 
-std::string get_env_var(std::string const& key)
+std::string GetEnvVar(std::string const& key)
 {
     char const* val = std::getenv(key.c_str());
-    return val == NULL ? std::string() : std::string(val);
+    std::string result = val == NULL ? std::string() : std::string(val);
+
+    // Add debug output
+    std::cerr << "Environment variable " << key << ": " << result << std::endl;
+
+    return result;
 }
 
 int main(int argc, char* argv[])
@@ -18,15 +26,38 @@ int main(int argc, char* argv[])
     CLI::App app{"homevault-cli"};
     app.require_subcommand(1);
 
-    std::string hostname = get_env_var("HV_HOSTNAME");
-    std::string username = get_env_var("HV_USERNAME");
-    std::string password = get_env_var("HV_PASSWORD");
+    // std::string hostname = GetEnvVar("HV_HOSTNAME");
+    // if (hostname.empty())
+    // {
+    //     std::cerr << "Error: HV_HOSTNAME environment variable is not set"
+    //               << std::endl;
+    //     return EXIT_FAILURE;
+    // }
+    std::string hostname("http://localhost:8080");
+    std::string username = GetEnvVar("HV_USERNAME");
+    std::string password = GetEnvVar("HV_PASSWORD");
 
-    hv::HomeVaultClient hvClient(hostname, username, password);
+    // Create client with appropriate constructor
+    std::unique_ptr<hv::HomeVaultClient> hvClient;
+
+    if (!username.empty())
+    {
+        if (password.empty())
+        {
+            std::cerr << "Error: no password provided for user \"" << username
+                      << "\" on hostname \"" << hostname << "\"." << std::endl;
+            return EXIT_FAILURE;
+        }
+        hvClient =
+            std::make_unique<hv::HomeVaultClient>(hostname, username, password);
+    }
+    else
+    {
+        hvClient = std::make_unique<hv::HomeVaultClient>(hostname);
+    }
 
     static CLISetup::CLIStorage cliStorage;
-
-    CLISetup::SetupSubcommands(app, hvClient, cliStorage);
+    CLISetup::SetupSubcommands(app, *hvClient, cliStorage);
 
     CLI11_PARSE(app, argc, argv);
 

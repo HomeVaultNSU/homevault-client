@@ -1,6 +1,7 @@
 #include "core/HomeVaultClient.hpp"
 
 #include <algorithm>
+#include <iostream>
 #include <memory>
 
 #include "core/Result.hpp"
@@ -25,7 +26,6 @@ ResultValue<FileInfo> HomeVaultClient::listRemoteFiles(const std::string& path,
 {
     WebDAVResponse response =
         m_webdavClient->propfind(path, depth == 0 ? "0" : "1");
-
 
     if (!response.isSuccess())
     {

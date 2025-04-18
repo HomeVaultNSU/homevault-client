@@ -2,6 +2,8 @@
 
 #include <curlpp/Infos.hpp>
 #include <curlpp/cURLpp.hpp>
+#include <fstream>
+#include <iostream>
 #include <sstream>
 
 #include "webdav/WebDAVResponse.hpp"
@@ -9,19 +11,144 @@
 namespace hv
 {
 
+WebDAVResponse WebDAVClient::GetDirectoryListing(const std::string& path,
+                                                 int depth)
+{
+    try
+    {
+        curlpp::Easy request;
+
+        // Build query URL correctly without leading slash since buildUrl adds
+        // it
+        std::string encodedPath =
+            (path == "/" || path.empty()) ? "%2F" : curlpp::escape(path);
+        std::string queryUrl =
+            "list?path=" + encodedPath + "&depth=" + std::to_string(depth);
+
+        // Debug output
+        std::cerr << "Query URL before buildUrl: " << queryUrl << std::endl;
+
+        // Setup request
+        setupCurlHandle(request, buildUrl(queryUrl));
+
+        // Add required header for JSON response
+        std::list<std::string> headers;
+        headers.push_back("accept: application/json");
+        request.setOpt(new curlpp::options::HttpHeader(headers));
+
+        // Set HTTP method explicitly
+        request.setOpt(new curlpp::options::CustomRequest("GET"));
+
+        // Debug output for full URL
+        std::cerr << "Making GET request to: " << buildUrl(queryUrl)
+                  << std::endl;
+
+        // Capture response
+        std::stringstream responseStream;
+        request.setOpt(new curlpp::options::WriteStream(&responseStream));
+
+        request.perform();
+
+        long statusCode = curlpp::infos::ResponseCode::get(request);
+        std::string response = responseStream.str();
+
+        return WebDAVResponse(statusCode, response);
+    }
+    catch (const std::exception& e)
+    {
+        return WebDAVResponse(500, std::string("Error: ") + e.what());
+    }
+}
+
+WebDAVResponse WebDAVClient::UploadFile(const std::string& localPath,
+                                        const std::string& remotePath)
+{
+    try
+    {
+        curlpp::Easy request;
+        setupCurlHandle(request, buildUrl("/upload"));
+
+        // Setup form data
+        curlpp::Forms formParts;
+        formParts.push_back(new curlpp::FormParts::File("file", localPath));
+        formParts.push_back(new curlpp::FormParts::Content("path", remotePath));
+
+        request.setOpt(new curlpp::options::HttpPost(formParts));
+
+        // Capture response
+        std::stringstream responseStream;
+        request.setOpt(new curlpp::options::WriteStream(&responseStream));
+
+        request.perform();
+
+        long statusCode = curlpp::infos::ResponseCode::get(request);
+        return WebDAVResponse(statusCode, responseStream.str());
+    }
+    catch (const std::exception& e)
+    {
+        return WebDAVResponse(500, std::string("Error: ") + e.what());
+    }
+}
+
+WebDAVResponse WebDAVClient::DownloadFile(const std::string& remotePath,
+                                          const std::string& localPath)
+{
+    try
+    {
+        curlpp::Easy request;
+        setupCurlHandle(request, buildUrl("/download?path=" + remotePath));
+
+        // Open file for writing
+        std::ofstream ofs(localPath, std::ios::binary);
+        if (!ofs)
+        {
+            return WebDAVResponse(500, "Cannot open local file for writing");
+        }
+
+        // Write response directly to file
+        request.setOpt(new curlpp::options::WriteStream(&ofs));
+
+        request.perform();
+
+        long statusCode = curlpp::infos::ResponseCode::get(request);
+        return WebDAVResponse(statusCode, "");
+    }
+    catch (const std::exception& e)
+    {
+        return WebDAVResponse(500, std::string("Error: ") + e.what());
+    }
+}
+
 WebDAVClient::WebDAVClient(const std::string& baseUrl,
                            const std::string& username,
                            const std::string& password)
     : m_baseUrl(baseUrl), m_username(username), m_password(password)
 {
-    // Remove trailing slash from base URL if present
+    // Validate base URL
+    if (m_baseUrl.empty())
+    {
+        throw std::runtime_error("Base URL cannot be empty");
+    }
+
+    // Debug the input URL
+    std::cerr << "Input URL: " << m_baseUrl << std::endl;
+
+    // Ensure base URL has protocol
+    if (m_baseUrl.find("http://") != 0 && m_baseUrl.find("https://") != 0)
+    {
+        m_baseUrl = "http://" + m_baseUrl;
+    }
+
+    // Remove trailing slash from base URL
     if (!m_baseUrl.empty() && m_baseUrl.back() == '/')
     {
         m_baseUrl.pop_back();
     }
 
-    m_hasCredentials = !m_username.empty() && !m_password.empty();
+    // Debug the final URL
+    std::cerr << "Final URL: " << m_baseUrl << std::endl;
 
+    m_hasCredentials = !m_username.empty() && !m_password.empty();
     curlpp::initialize();
 }
 
@@ -225,14 +352,11 @@ std::string WebDAVClient::buildUrl(const std::string& path)
 {
     std::string result = m_baseUrl;
 
-    if (!path.empty())
-    {
-        if (path[0] != '/')
-        {
-            result += '/';
-        }
-        result += path;
-    }
+    // Don't add any slashes - the path should already be formatted correctly
+    result += path;
+
+    // Debug output
+    std::cerr << "Built URL: " << result << std::endl;
 
     return result;
 }
