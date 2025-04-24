@@ -1,7 +1,7 @@
 #include <CLI/App.hpp>
 #include <CLI/CLI.hpp>
 #include <CLI/Error.hpp>
-#include <core/HomeVaultClient.hpp>
+#include <core/Homevault.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -26,19 +26,19 @@ int main(int argc, char* argv[])
     CLI::App app{"homevault-cli"};
     app.require_subcommand(1);
 
-    // std::string hostname = GetEnvVar("HV_HOSTNAME");
-    // if (hostname.empty())
-    // {
-    //     std::cerr << "Error: HV_HOSTNAME environment variable is not set"
-    //               << std::endl;
-    //     return EXIT_FAILURE;
-    // }
-    std::string hostname("http://localhost:8080");
+    std::string hostname = GetEnvVar("HV_HOSTNAME");
+    if (hostname.empty())
+    {
+        std::cerr << "Error: HV_HOSTNAME environment variable is not set"
+                  << std::endl;
+        return EXIT_FAILURE;
+    }
+
     std::string username = GetEnvVar("HV_USERNAME");
     std::string password = GetEnvVar("HV_PASSWORD");
 
     // Create client with appropriate constructor
-    std::unique_ptr<hv::HomeVaultClient> hvClient;
+    std::unique_ptr<hv::Homevault> hvClient;
 
     if (!username.empty())
     {
@@ -49,11 +49,11 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
         hvClient =
-            std::make_unique<hv::HomeVaultClient>(hostname, username, password);
+            std::make_unique<hv::Homevault>(hostname);
     }
     else
     {
-        hvClient = std::make_unique<hv::HomeVaultClient>(hostname);
+        hvClient = std::make_unique<hv::Homevault>(hostname);
     }
 
     static CLISetup::CLIStorage cliStorage;

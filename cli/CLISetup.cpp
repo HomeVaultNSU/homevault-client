@@ -1,12 +1,12 @@
 #include "hv/cli/CLISetup.hpp"
 
-#include <core/HomeVaultClient.hpp>
+#include <core/Homevault.hpp>
 #include <iostream>
 #include <vector>
 
 namespace CLISetup
 {
-void PrintList(hv::HomeVaultClient& hvClient, int depth,
+void PrintList(hv::Homevault& hvClient, int depth,
                CLISetup::CLIStorage& cliStorage)
 {
     auto result = hvClient.listRemoteFiles(cliStorage.listPath, depth);
@@ -21,7 +21,7 @@ void PrintList(hv::HomeVaultClient& hvClient, int depth,
 }
 
 void Upload(const std::vector<std::string>& files,
-            hv::HomeVaultClient& hvClient)
+            hv::Homevault& hvClient)
 {
     for (const auto& file : files)
     {
@@ -39,7 +39,7 @@ void Upload(const std::vector<std::string>& files,
 }
 
 void Download(const std::vector<std::string>& files,
-              hv::HomeVaultClient& hvClient)
+              hv::Homevault& hvClient)
 {
     for (const auto& file : files)
     {
@@ -56,7 +56,7 @@ void Download(const std::vector<std::string>& files,
     }
 }
 
-void SetupSubcommands(CLI::App& app, hv::HomeVaultClient& hvClient,
+void SetupSubcommands(CLI::App& app, hv::Homevault& hvClient,
                       CLISetup::CLIStorage& cliStorage)
 {
     const auto list =

@@ -1,33 +1,29 @@
-#ifndef HV_CLIENT_H
-#define HV_CLIENT_H
+#ifndef HOMEVAULT_HPP
+#define HOMEVAULT_HPP
 
 #include <filesystem>
 #include <string>
 
-#include "FileInfo.hpp"
-#include "Result.hpp"
+#include "core/Result.hpp"
+#include "core/Models.hpp"
 
 namespace hv
 {
 
-class WebDAVClient;
+class ApiClient;
 
-class HomeVaultClient
+class Homevault
 {
 public:
-    HomeVaultClient(const std::string& hostname,
-                    const std::string& username = "",
-                    const std::string& password = "");
-
-    ~HomeVaultClient();
-
+    Homevault(const std::string& hostname);
+    ~Homevault();
     
     /**
     * @brief List contents of remote directory
     * @param path remote path to list
     * @param depth list depth (depth = -1 - infinite) 
     */
-    ResultValue<FileInfo> listRemoteFiles(const std::string& path, int depth = -1);
+    ResultValue<DirectoryListing> listRemoteFiles(const std::string& path, int depth = -1);
 
     Result upload(const std::filesystem::path& local_path,
                   const std::filesystem::path& remote_path);
@@ -37,9 +33,9 @@ public:
 
 private:
 
-    std::unique_ptr<WebDAVClient> m_webdavClient;
+    std::unique_ptr<ApiClient> m_apiClient;
 };
 
 }  // namespace hv
 
-#endif  // !HV_CLIENT_H
+#endif  // !HOMEVAULT_HPP
