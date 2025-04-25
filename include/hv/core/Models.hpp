@@ -38,7 +38,7 @@ struct DirectoryListing
     nlohmann::json toJson() const;
     static DirectoryListing fromJson(const nlohmann::json& json);
 
-    std::string toTreeString();
+    std::string toTreeString(int depth);
 };
 
 struct UploadResponse

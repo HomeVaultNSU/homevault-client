@@ -35,6 +35,7 @@ public:
                     const std::filesystem::path& remote_path);
 
 private:
+    std::string normalizePath(const std::string& path);
     std::unique_ptr<ApiClient> m_apiClient;
 };
 

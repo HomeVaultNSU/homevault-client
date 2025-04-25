@@ -15,36 +15,41 @@ Homevault::Homevault(const std::string& hostname)
 
 Homevault::~Homevault() = default;
 
+std::string Homevault::normalizePath(const std::string& path)
+{
+    // Normalize path (ensure it starts with /, remove trailing / unless
+    // it's just "/")
+    std::string normalized = path.empty() ? "/" : path;
+    if (!(normalized[0] == '/'))
+    {
+        // Ensure leading slash
+        normalized = "/" + normalized;
+    }
+
+    if (normalized.length() > 1 && normalized.back() == '/')
+    {
+        normalized.pop_back();
+    }
+
+    return normalized;
+}
+
 ResultValue<DirectoryListing> Homevault::listRemoteFiles(
     const std::string& path, int depth)
 {
     try
     {
-        if (depth < 0 || depth > 5)
-        {
-            return ResultValue<DirectoryListing>(
-                Status::eInvalidArgument, "Depth must be between 0 and 5");
-        }
-
-        // Normalize path (ensure it starts with /, remove trailing / unless
-        // it's just "/")
-        std::string normalizedPath = path.empty() ? "/" : path;
-        if (!(normalizedPath[0] == '/'))
-        {  // Ensure leading slash
-            normalizedPath = "/" + normalizedPath;
-        }
-        if (normalizedPath.length() > 1 && normalizedPath.back() == '/')
-        {
-            normalizedPath.pop_back();
-        }
+        std::string normalizedPath = normalizePath(path);
 
         // Use the FilesystemCrawler to handle potential recursion
-        FileSystemCrawler filesystemCrawler(*m_apiClient);  //
-        DirectoryListing listing = filesystemCrawler.getDirectoryTreeWithDepth(
-            normalizedPath, depth);  //
+        FileSystemCrawler filesystemCrawler(*m_apiClient);
+
+        std::cout << "depth = " << depth << std::endl;
+        DirectoryListing listing =
+            filesystemCrawler.getDirectoryTreeWithDepth(normalizedPath, depth);
 
         // Success
-        return ResultValue<DirectoryListing>(listing);  //
+        return ResultValue<DirectoryListing>(listing);
     }
     // Catch specific API exceptions from ApiClient/Crawler
     catch (const HomevaultNotFoundException& e)  // Specific catch
@@ -63,16 +68,15 @@ ResultValue<DirectoryListing> Homevault::listRemoteFiles(
         // UnknownError
         Status status = Status::eUnknownError;
         if (e.getStatusCode() == 404)
-            status = Status::eNotFound;  //
+            status = Status::eNotFound;
         else if (e.getStatusCode() == 400)
-            status = Status::eInvalidArgument;  //
+            status = Status::eInvalidArgument;
         // Add more specific mappings if needed
 
         return ResultValue<DirectoryListing>(
             status, "Server error: " + std::string(e.what()));  //
     }
-    // Catch standard exceptions (like invalid_argument from crawler depth
-    // check)
+    // Catch standard exceptions
     catch (const std::invalid_argument& e)
     {
         return ResultValue<DirectoryListing>(
@@ -80,11 +84,11 @@ ResultValue<DirectoryListing> Homevault::listRemoteFiles(
             "Invalid argument: " + std::string(e.what()));
     }
     // Catch any other unexpected exceptions
-    catch (const std::exception& e)  //
+    catch (const std::exception& e)
     {
         return ResultValue<DirectoryListing>(
             Status::eUnknownError,
-            "Unexpected error: " + std::string(e.what()));  //
+            "Unexpected error: " + std::string(e.what()));
     }
 }
 

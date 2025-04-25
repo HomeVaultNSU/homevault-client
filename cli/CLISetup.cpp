@@ -11,7 +11,7 @@ void PrintList(hv::Homevault& hvClient, int depth, std::string listPath)
     auto result = hvClient.listRemoteFiles(listPath, depth);
     if (result.status() == hv::Status::eSuccess)
     {
-        std::cout << result.value().toTreeString() << "\n";
+        std::cout << result.value().toTreeString(depth) << "\n";
     }
     else
     {

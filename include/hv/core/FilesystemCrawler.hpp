@@ -37,13 +37,12 @@ private:
      * @brief Recursive helper to build the directory tree
      *
      * @param currentPath Current directory path
-     * @param currentDepth Current depth in the tree
-     * @param maxDepth Maximum depth to explore
+     * @param depth depth to explore
      * @return DirectoryListing Directory listing for the current path with
      * subdirectories
      */
     DirectoryListing buildDirectoryTree(const std::string& currentPath,
-                                        int currentDepth, int maxDepth);
+                                        int depth);
 };
 
 }  // namespace hv
