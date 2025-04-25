@@ -33,7 +33,7 @@ public:
 
 private:
     void toTreeStringImpl(std::stringstream& ss, const std::string& prefix,
-                      bool isLast) const;
+                          bool isLast) const;
 
     std::string m_name;
     std::string m_lastModified;

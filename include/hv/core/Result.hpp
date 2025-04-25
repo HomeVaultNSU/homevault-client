@@ -12,9 +12,14 @@ namespace hv
  */
 enum class Status
 {
-    eSuccess,
-    eConnectionError,
-    eUnknownError
+    eSuccess,          ///< Operation completed successfully
+    eNotFound,         ///< Resource not found (maps to HTTP 404)
+    eInvalidArgument,  ///< Invalid input parameters (maps to HTTP 400)
+    eConnectionError,  ///< Network or connection error
+    eUnknownError,     ///< Unspecified error (maps to HTTP 500)
+    eAuthError,        ///< Authentication or authorization error
+    eFileError,        ///< File system related error
+    eTimeout           ///< Operation timed out
 };
 
 /**
@@ -75,17 +80,16 @@ private:
 class Result
 {
 public:
-    Result(Status status, const std::string& message = "")
-        : _status(status), _message(message)
+    Result(Status s = Status::eSuccess, std::string m = "")
+        : status_(s), message_(m)
     {
     }
-
-    Status status() { return _status; }
-    std::string& message() { return _message; }
+    Status status() const { return status_; }
+    const std::string& message() const { return message_; }
 
 private:
-    Status _status;
-    std::string _message;
+    Status status_;
+    std::string message_;
 };
 
 }  // namespace hv

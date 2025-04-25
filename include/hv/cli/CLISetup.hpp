@@ -4,20 +4,36 @@
 #include <CLI/App.hpp>
 #include <core/Homevault.hpp>
 #include <string>
+#include <vector>
 
 namespace CLISetup
 {
-
-struct CLIStorage
+struct ListStorage
 {
-    std::string listPath;
     int depth;
+    std::string listPath;
 
-    CLIStorage() : listPath("") {}
+    ListStorage() : listPath("") {}
 };
 
-void SetupSubcommands(CLI::App& app, hv::Homevault& server_connection,
-                      CLISetup::CLIStorage& cliStorage);
+struct UploadStorage
+{
+    std::vector<std::string> files;
+};
+
+struct DownloadStorage
+{
+    std::vector<std::string> files;
+};
+
+void SetupListSubcommand(CLI::App& app, hv::Homevault& hvClient,
+                         CLISetup::ListStorage& listStorage);
+
+void SetupUploadSubcommand(CLI::App& app, hv::Homevault& hvClient,
+                           CLISetup::UploadStorage& uploadStorage);
+
+void SetupDownloadSubcommand(CLI::App& app, hv::Homevault& hvClient,
+                             CLISetup::DownloadStorage& downloadStorage);
 }  // namespace CLISetup
 
-#endif // !CLISETUP_HPP
+#endif  // !CLISETUP_HPP

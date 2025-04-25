@@ -10,7 +10,8 @@
 
 #include "Models.hpp"
 
-namespace hv {
+namespace hv
+{
 
 class ApiClient
 {
@@ -46,6 +47,6 @@ private:
     void handleErrorResponse(const std::string& response);
 };
 
-} // namespace hv
+}  // namespace hv
 
 #endif  // !APICLIENT_HPP

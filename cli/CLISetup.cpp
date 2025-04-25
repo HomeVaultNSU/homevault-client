@@ -6,10 +6,9 @@
 
 namespace CLISetup
 {
-void PrintList(hv::Homevault& hvClient, int depth,
-               CLISetup::CLIStorage& cliStorage)
+void PrintList(hv::Homevault& hvClient, int depth, std::string listPath)
 {
-    auto result = hvClient.listRemoteFiles(cliStorage.listPath, depth);
+    auto result = hvClient.listRemoteFiles(listPath, depth);
     if (result.status() == hv::Status::eSuccess)
     {
         std::cout << result.value().toTreeString() << "\n";
@@ -20,8 +19,7 @@ void PrintList(hv::Homevault& hvClient, int depth,
     }
 }
 
-void Upload(const std::vector<std::string>& files,
-            hv::Homevault& hvClient)
+void Upload(const std::vector<std::string>& files, hv::Homevault& hvClient)
 {
     for (const auto& file : files)
     {
@@ -38,8 +36,7 @@ void Upload(const std::vector<std::string>& files,
     }
 }
 
-void Download(const std::vector<std::string>& files,
-              hv::Homevault& hvClient)
+void Download(const std::vector<std::string>& files, hv::Homevault& hvClient)
 {
     for (const auto& file : files)
     {
@@ -56,27 +53,36 @@ void Download(const std::vector<std::string>& files,
     }
 }
 
-void SetupSubcommands(CLI::App& app, hv::Homevault& hvClient,
-                      CLISetup::CLIStorage& cliStorage)
+void SetupListSubcommand(CLI::App& app, hv::Homevault& hvClient,
+                         CLISetup::ListStorage& listStorage)
 {
     const auto list =
         app.add_subcommand("list", "List all available files on server");
-    auto upload = app.add_subcommand("upload", "Upload file to server");
-    auto download = app.add_subcommand("download", "Download file from server");
-
-    list->add_option("-d,--depth", cliStorage.depth,
-                     "Depth of file tree to print (infinite by default)")
-        ->default_val(-1);
-    list->add_option("path", cliStorage.listPath, "List path")
+    list->add_option("-d,--depth", listStorage.depth,
+                     "Depth of file tree to print (1 by default)")
+        ->default_val(1);
+    list->add_option("path", listStorage.listPath, "List path")
         ->default_str("/")
         ->required(false);
-
-    list->callback([&]()
-                   { PrintList(hvClient, cliStorage.depth, cliStorage); });
-    upload->callback([upload, &hvClient]()
-                     { Upload(upload->remaining(), hvClient); });
-    download->callback([download, &hvClient]()
-                       { Download(download->remaining(), hvClient); });
+    list->callback(
+        [&]()
+        { PrintList(hvClient, listStorage.depth, listStorage.listPath); });
 }
 
+void SetupUploadSubcommand(CLI::App& app, hv::Homevault& hvClient,
+                           CLISetup::UploadStorage& uploadStorage)
+{
+    auto upload = app.add_subcommand("upload", "Upload file to server");
+    upload->add_option("files", uploadStorage.files, "Files to upload")
+        ->required()
+        ->expected(-1);  // Allow multiple files
+    upload->callback([&]() { Upload(uploadStorage.files, hvClient); });
+}
+
+void SetupDownloadSubcommand(CLI::App& app, hv::Homevault& hvClient,
+                             CLISetup::DownloadStorage& downloadStorage)
+{
+    auto download = app.add_subcommand("download", "Download file from server");
+    download->callback([&]() { Download(downloadStorage.files, hvClient); });
+}
 }  // namespace CLISetup

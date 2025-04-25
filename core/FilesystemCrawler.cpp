@@ -1,48 +1,79 @@
 #include "core/FilesystemCrawler.hpp"
 
-namespace hv {
+#include <vector>
 
-FileSystemCrawler::FileSystemCrawler(ApiClient& apiClient) : apiClient(apiClient) {}
+namespace hv
+{
 
-DirectoryListing FileSystemCrawler::getDirectoryTreeWithDepth(const std::string& path, int maxDepth) {
-    // Validate maximum depth
-    if (maxDepth < 0) {
-        throw std::invalid_argument("Maximum depth cannot be negative");
+FileSystemCrawler::FileSystemCrawler(ApiClient& client) : apiClient(client)
+{
+}  //
+
+DirectoryListing FileSystemCrawler::getDirectoryTreeWithDepth(
+    const std::string& path, int maxDepth)  //
+{
+    // Validate depth (as per OpenAPI spec 0-5, but crawler can handle >= 0)
+    if (maxDepth < 0)  //
+    {
+        throw std::invalid_argument("Maximum depth cannot be negative");  //
     }
-    
-    // Start the recursive crawling from the specified path
-    return buildDirectoryTree(path, 0, maxDepth);
+    // The Homevault::listRemoteFiles method should enforce the max=5
+    // constraint.
+
+    // Start recursive build
+    return buildDirectoryTree(path, 0, maxDepth);  //
 }
 
-DirectoryListing FileSystemCrawler::buildDirectoryTree(const std::string& currentPath, 
-                                                       int currentDepth, 
-                                                       int maxDepth) {
-    // Get basic directory listing (with depth=1 to include immediate subdirectories)
-    DirectoryListing listing = apiClient.getDirectoryListing(currentPath, 1);
-    
-    // If we've reached the maximum depth or there are no subdirectories, return the current listing
-    if (currentDepth >= maxDepth || listing.subdirectories.empty()) {
-        return listing;
+DirectoryListing FileSystemCrawler::buildDirectoryTree(
+    const std::string& currentPath, int currentDepth, int maxDepth)  //
+{
+    // Optimization: Request depth 1 initially to get immediate children AND
+    // know about subdirs. The API's 'depth' parameter controls how deep the
+    // *server* looks. We request depth=1 from the server initially. Our
+    // client-side recursion handles client-side depth. If the API *could*
+    // return the whole structure based on depth > 1, this client-side recursion
+    // might be simpler, just calling getDirectoryListing once with the
+    // requested depth. Assuming the API only returns nested structure if *it*
+    // is asked with depth > 0, and our client needs to assemble deeper
+    // structures. Let's stick to the provided logic:
+    DirectoryListing listing =
+        apiClient.getDirectoryListing(currentPath, 1);  // Fetch level 1 data
+
+    // Base case: If max depth reached OR the server returned no further
+    // subdirectories in its depth=1 response Note: The check
+    // `listing.subdirectories.empty()` relies on the server *populating* the
+    // subdirectories array even when called with depth=1, perhaps just with
+    // paths/names but empty 'items'. If the server *only* returns subdirs when
+    // depth>1 is *requested*, this logic needs adjustment. Assuming the
+    // provided code's logic matches the server behavior:
+    if (currentDepth >= maxDepth || listing.subdirectories.empty())  //
+    {
+        // We might want to clear subdirectories if maxDepth is reached but
+        // server sent some?
+        if (currentDepth >= maxDepth)
+        {
+            listing.subdirectories
+                .clear();  // Don't show further levels if maxDepth reached
+        }
+        return listing;  //
     }
-    
-    // Store the current subdirectories for iteration
-    std::vector<DirectoryListing> currentSubdirs = listing.subdirectories;
-    
-    // Clear the subdirectories to rebuild them with deeper listings
-    listing.subdirectories.clear();
-    
-    // For each subdirectory, recursively build its tree
-    for (const auto& subdir : currentSubdirs) {
-        std::string subdirPath = subdir.path;
-        
-        // Recursively get the full directory tree for this subdirectory
-        DirectoryListing subdirTree = buildDirectoryTree(subdirPath, currentDepth + 1, maxDepth);
-        
-        // Add the complete subdirectory tree to our listing
-        listing.subdirectories.push_back(subdirTree);
+
+    // Recursive step: Fetch deeper info for subdirectories
+    std::vector<DirectoryListing> populatedSubdirs;  // Build the new list here
+    for (const auto& shallowSubdir :
+         listing
+             .subdirectories)  // Iterate over subdirs reported by initial call
+    {
+        // Recursively call to get the deeper tree for this subdirectory
+        DirectoryListing deepSubdirTree = buildDirectoryTree(
+            shallowSubdir.path, currentDepth + 1, maxDepth);  //
+        populatedSubdirs.push_back(deepSubdirTree);           //
     }
-    
-    return listing;
+
+    // Replace the shallow subdirectories with the recursively populated ones
+    listing.subdirectories = std::move(populatedSubdirs);  // Update the listing
+
+    return listing;  //
 }
 
-} // namespace hv
+}  // namespace hv

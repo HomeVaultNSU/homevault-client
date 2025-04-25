@@ -3,6 +3,7 @@
 
 #include <nlohmann/json.hpp>
 #include <optional>
+#include <stdexcept>  // For exceptions
 #include <string>
 #include <vector>
 
@@ -62,38 +63,41 @@ struct ErrorResponse
 
 class HomevaultApiException : public std::runtime_error
 {
+private:
+    int statusCode_ = 0;  // Store status code if available
 public:
-    HomevaultApiException(const std::string& message)
-        : std::runtime_error(message)
+    explicit HomevaultApiException(const std::string& msg, int statusCode = 0)
+        : std::runtime_error(msg), statusCode_(statusCode)
     {
     }
+    int getStatusCode() const { return statusCode_; }  //
 };
 
 class HomevaultNotFoundException : public HomevaultApiException
 {
 public:
-    HomevaultNotFoundException(const std::string& message)
-        : HomevaultApiException(message)
+    explicit HomevaultNotFoundException(const std::string& msg)
+        : HomevaultApiException(msg, 404)
     {
-    }
+    }  //
 };
 
 class HomevaultBadRequestException : public HomevaultApiException
 {
 public:
-    HomevaultBadRequestException(const std::string& message)
-        : HomevaultApiException(message)
+    explicit HomevaultBadRequestException(const std::string& msg)
+        : HomevaultApiException(msg, 400)
     {
-    }
+    }  //
 };
 
 class HomevaultServerException : public HomevaultApiException
 {
 public:
-    HomevaultServerException(const std::string& message)
-        : HomevaultApiException(message)
+    explicit HomevaultServerException(const std::string& msg)
+        : HomevaultApiException(msg, 500)
     {
-    }
+    }  // Default to 500 if not specified
 };
 
 }  // namespace hv

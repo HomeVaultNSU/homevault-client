@@ -3,12 +3,12 @@
 ## Build
 Install dependencies:
 ```bash
-apt install libcli11-dev libcurlpp-dev
+apt install libcli11-dev libcurlpp-dev nlohmann-json3-dev
 ```
 
 Build:
 ```bash
-cmake -B Build
+cmake -B build
 cmake --build build
 ```
 
