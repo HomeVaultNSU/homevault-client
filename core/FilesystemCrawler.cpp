@@ -16,7 +16,7 @@ DirectoryListing FileSystemCrawler::getDirectoryTreeWithDepth(
     // Validate depth (as per OpenAPI spec 0-5, but crawler can handle >= 0)
     if (maxDepth < 0)
     {
-        throw std::invalid_argument("Maximum depth cannot be negative");  //
+        throw std::invalid_argument("Maximum depth cannot be negative");
     }
 
     return buildDirectoryTree(path, maxDepth);

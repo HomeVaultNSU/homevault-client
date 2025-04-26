@@ -14,34 +14,32 @@ namespace hv
 
 ApiClient::ApiClient(const std::string& baseUrl) : baseUrl(baseUrl)
 {
-    // Initialize curlpp
     curlpp::initialize();
 }
 
-// Method to get directory listing from the API
 DirectoryListing ApiClient::getDirectoryListing(const std::string& path,
-                                                int depth)  //
+                                                int depth)
 {
-    std::map<std::string, std::string> params;  //
-    params["path"] = path;                      //
-    params["depth"] = std::to_string(depth);    //
+    std::map<std::string, std::string> params;
+    params["path"] = path;
+    params["depth"] = std::to_string(depth);
 
     try
     {
-        nlohmann::json response = get("/list", params);  // Make the GET request
-        return DirectoryListing::fromJson(response);     // Parse JSON response
+        nlohmann::json response = get("/list", params);
+        return DirectoryListing::fromJson(response);
     }
-    catch (const curlpp::RuntimeError& e)  // Network/Curl errors
+    catch (const curlpp::RuntimeError& e)
     {
         throw HomevaultServerException(std::string("Network error: ") +
-                                       e.what());  //
+                                       e.what());
     }
     // Assume HomevaultApiException and derived exceptions are caught by caller
     // or handled in get()
 }
 
 UploadResponse ApiClient::uploadFile(const std::string& filePath,
-                                     const std::string& targetDir)  //
+                                     const std::string& targetDir)
 {
     std::map<std::string, std::string>
         params;                  // Parameters other than the file itself
@@ -51,21 +49,21 @@ UploadResponse ApiClient::uploadFile(const std::string& filePath,
     {
         // Call the helper function that handles multipart POST
         nlohmann::json response =
-            postMultipart("/upload", filePath, params);  //
+            postMultipart("/upload", filePath, params);
         return UploadResponse::fromJson(
             response);  // Parse the success response
     }
     catch (const curlpp::RuntimeError& e)  // Network/Curl errors
     {
         throw HomevaultServerException(
-            std::string("Network error during upload: ") + e.what());  //
+            std::string("Network error during upload: ") + e.what());
     }
     catch (const std::ifstream::failure& e)  // File reading errors
     {
         // Convert file error to a BadRequest exception as the client provided a
         // bad path
         throw HomevaultBadRequestException(std::string("File error: ") +
-                                           e.what());  //
+                                           e.what());
     }
     // Assume HomevaultApiException and derived exceptions are caught by caller
     // or handled in postMultipart()
@@ -87,62 +85,61 @@ std::vector<uint8_t> ApiClient::downloadFile(const std::string& path)
     }
 }
 
-nlohmann::json ApiClient::get(
-    const std::string& endpoint,
-    const std::map<std::string, std::string>& params)  //
+nlohmann::json ApiClient::get(const std::string& endpoint,
+                              const std::map<std::string, std::string>& params)
 {
-    std::string url = buildUrl(endpoint, params);  //
+    std::string url = buildUrl(endpoint, params);
 
     try
     {
-        curlpp::Easy request;                       //
-        request.setOpt(curlpp::options::Url(url));  //
+        curlpp::Easy request;
+        request.setOpt(curlpp::options::Url(url));
 
-        std::ostringstream responseStream;                              //
-        request.setOpt(curlpp::options::WriteStream(&responseStream));  //
+        std::ostringstream responseStream;
+        request.setOpt(curlpp::options::WriteStream(&responseStream));
 
-        request.perform();  //
+        request.perform();
 
-        long responseCode = curlpp::infos::ResponseCode::get(request);  //
-        std::string responseBody = responseStream.str();                //
+        long responseCode = curlpp::infos::ResponseCode::get(request);
+        std::string responseBody = responseStream.str();
 
-        if (responseBody.empty())  //
+        if (responseBody.empty())
         {
-            throw HomevaultServerException("Empty response from server");  //
+            throw HomevaultServerException("Empty response from server");
         }
 
-        nlohmann::json jsonResponse = nlohmann::json::parse(responseBody);  //
+        nlohmann::json jsonResponse = nlohmann::json::parse(responseBody);
 
         // Check for HTTP error codes based on OpenAPI spec
-        if (responseCode >= 400)  //
+        if (responseCode >= 400)
         {
             std::string errorMsg = "Unknown server error";
             if (jsonResponse.contains("error") &&
                 jsonResponse["error"].is_string())
             {
-                errorMsg = jsonResponse["error"].get<std::string>();  //
+                errorMsg = jsonResponse["error"].get<std::string>();
             }
 
-            if (responseCode == 404)  //
+            if (responseCode == 404)
             {
-                throw HomevaultNotFoundException(errorMsg);  //
+                throw HomevaultNotFoundException(errorMsg);
             }
-            else if (responseCode == 400)  //
+            else if (responseCode == 400)
             {
-                throw HomevaultBadRequestException(errorMsg);  //
+                throw HomevaultBadRequestException(errorMsg);
             }
             else  // Treat other 4xx/5xx errors as general server errors
             {
-                throw HomevaultServerException(errorMsg);  //
+                throw HomevaultServerException(errorMsg);
             }
         }
 
-        return jsonResponse;  //
+        return jsonResponse;
     }
     catch (const nlohmann::json::parse_error& e)  // JSON parsing errors
     {
         throw HomevaultServerException(std::string("JSON parse error: ") +
-                                       e.what());  //
+                                       e.what());
     }
     // Let curlpp::RuntimeError propagate up if not caught here
 }
@@ -283,54 +280,38 @@ nlohmann::json ApiClient::post(const std::string& endpoint,
 
 nlohmann::json ApiClient::postMultipart(
     const std::string& endpoint, const std::string& filePath,
-    const std::map<std::string, std::string>& params)  //
+    const std::map<std::string, std::string>& params)
 {
-    std::string url =
-        buildUrl(endpoint);  // Build URL (no query params for POST body)
+    std::string url = buildUrl(endpoint);
 
     try
     {
-        // Setup curlpp request object
-        curlpp::Easy request;                       //
-        request.setOpt(curlpp::options::Url(url));  //
+        curlpp::Easy request;
+        request.setOpt(curlpp::options::Url(url));
 
-        // Prepare the multipart form data
-        curlpp::Forms formParts;  // List to hold form parts
+        curlpp::Forms formParts;
 
-        // --- File Part ---
-        // Get the filename from the full path
-        std::string filename = filePath;                  //
-        size_t lastSlash = filename.find_last_of("/\\");  //
+        std::string filename = filePath;
+        size_t lastSlash = filename.find_last_of("/\\");
         if (lastSlash != std::string::npos)
         {
-            filename = filename.substr(lastSlash + 1);  //
+            filename = filename.substr(lastSlash + 1);
         }
-        // Add the file form part (using File approach which reads from disk)
-        // The original code read the file into memory first, which is less
-        // efficient for large files. Using FormParts::File directly is often
-        // better.
-        formParts.push_back(new curlpp::FormParts::File(
-            "file", filePath,
-            filename));  // "file" is the field name from OpenAPI
-        // Optional: Set content type if needed, though libcurl often guesses
-        // well formParts.back()->contentType("application/octet-stream"); //
-        // Example
 
-        // --- Text Parameters Part ---
-        // Add other parameters from the map as form fields
-        for (const auto& [key, value] : params)  //
+        formParts.push_back(
+            new curlpp::FormParts::File("file", filePath, filename));
+
+        for (const auto& [key, value] : params)
         {
-            formParts.push_back(new curlpp::FormParts::Content(key, value));  //
+            formParts.push_back(new curlpp::FormParts::Content(key, value));
         }
 
-        // Set the HttpPost option with the form parts
-        request.setOpt(curlpp::options::HttpPost(formParts));  //
+        request.setOpt(curlpp::options::HttpPost(formParts));
 
-        // --- Execute Request and Handle Response ---
-        std::ostringstream responseStream;                              //
-        request.setOpt(curlpp::options::WriteStream(&responseStream));  //
+        std::ostringstream responseStream;
+        request.setOpt(curlpp::options::WriteStream(&responseStream));
 
-        request.perform();  //
+        request.perform();
 
         // --- Cleanup form parts ---
         // Important: Manually delete the allocated FormParts objects
@@ -341,18 +322,18 @@ nlohmann::json ApiClient::postMultipart(
         formParts.clear();
 
         // --- Process Response ---
-        long responseCode = curlpp::infos::ResponseCode::get(request);  //
-        std::string responseBody = responseStream.str();                //
+        long responseCode = curlpp::infos::ResponseCode::get(request);
+        std::string responseBody = responseStream.str();
 
-        if (responseBody.empty())  //
+        if (responseBody.empty())
         {
-            throw HomevaultServerException("Empty response from server");  //
+            throw HomevaultServerException("Empty response from server");
         }
 
         nlohmann::json jsonResponse;
         try
         {
-            jsonResponse = nlohmann::json::parse(responseBody);  //
+            jsonResponse = nlohmann::json::parse(responseBody);
         }
         catch (const nlohmann::json::parse_error& pe)
         {
@@ -371,20 +352,20 @@ nlohmann::json ApiClient::postMultipart(
         }
 
         // Check for HTTP error codes (OpenAPI: 400, 500 for upload)
-        if (responseCode >= 400)  //
+        if (responseCode >= 400)
         {
             std::string errorMsg = "Unknown upload error";
             if (jsonResponse.contains("error") &&
                 jsonResponse["error"].is_string())
             {
-                errorMsg = jsonResponse["error"].get<std::string>();  //
+                errorMsg = jsonResponse["error"].get<std::string>();
             }
 
             // Map status codes to exceptions
             if (responseCode ==
                 400)  // Bad request (e.g., invalid path format, missing file)
             {
-                throw HomevaultBadRequestException(errorMsg);  //
+                throw HomevaultBadRequestException(errorMsg);
             }
             // Add 404 case if the target *directory* could be not found
             else if (responseCode == 404)
@@ -394,7 +375,7 @@ nlohmann::json ApiClient::postMultipart(
             }
             else  // Treat other 4xx/5xx as general server errors
             {
-                throw HomevaultServerException(errorMsg);  //
+                throw HomevaultServerException(errorMsg);
             }
         }
         // OpenAPI spec indicates 201 Created for success
@@ -418,33 +399,33 @@ nlohmann::json ApiClient::postMultipart(
     {
         throw HomevaultServerException(
             std::string("JSON parse error on upload response: ") +
-            e.what());  //
+            e.what());
     }
     // Let curlpp::RuntimeError and std::ifstream::failure propagate up
 }
 
 std::string ApiClient::buildUrl(
     const std::string& endpoint,
-    const std::map<std::string, std::string>& params)  //
+    const std::map<std::string, std::string>& params)
 {
-    std::string url = baseUrl + endpoint;  //
+    std::string url = baseUrl + endpoint;
 
     if (!params.empty())
     {
-        url += "?";         //
-        bool first = true;  //
+        url += "?";
+        bool first = true;
 
-        for (const auto& [key, value] : params)  //
+        for (const auto& [key, value] : params)
         {
             if (!first)
             {
-                url += "&";  //
+                url += "&";
             }
             url += key + "=" + curlpp::escape(value);  // URL-encode parameters
-            first = false;                             //
+            first = false;
         }
     }
-    return url;  //
+    return url;
 }
 
 void ApiClient::handleErrorResponse(const std::string& response)

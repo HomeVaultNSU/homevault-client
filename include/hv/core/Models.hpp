@@ -70,7 +70,7 @@ public:
         : std::runtime_error(msg), statusCode_(statusCode)
     {
     }
-    int getStatusCode() const { return statusCode_; }  //
+    int getStatusCode() const { return statusCode_; }
 };
 
 class HomevaultNotFoundException : public HomevaultApiException
@@ -79,7 +79,7 @@ public:
     explicit HomevaultNotFoundException(const std::string& msg)
         : HomevaultApiException(msg, 404)
     {
-    }  //
+    }
 };
 
 class HomevaultBadRequestException : public HomevaultApiException
@@ -88,7 +88,7 @@ public:
     explicit HomevaultBadRequestException(const std::string& msg)
         : HomevaultApiException(msg, 400)
     {
-    }  //
+    }
 };
 
 class HomevaultServerException : public HomevaultApiException

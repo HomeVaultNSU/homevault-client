@@ -41,49 +41,39 @@ ResultValue<DirectoryListing> Homevault::listRemoteFiles(
     {
         std::string normalizedPath = normalizePath(path);
 
-        // Use the FilesystemCrawler to handle potential recursion
         FileSystemCrawler filesystemCrawler(*m_apiClient);
 
-        std::cout << "depth = " << depth << std::endl;
         DirectoryListing listing =
             filesystemCrawler.getDirectoryTreeWithDepth(normalizedPath, depth);
 
-        // Success
         return ResultValue<DirectoryListing>(listing);
     }
-    // Catch specific API exceptions from ApiClient/Crawler
-    catch (const HomevaultNotFoundException& e)  // Specific catch
+    catch (const HomevaultNotFoundException& e)
     {
-        return ResultValue<DirectoryListing>(
-            Status::eNotFound, e.what());  // Use exception message
+        return ResultValue<DirectoryListing>(Status::eNotFound, e.what());
     }
-    catch (const HomevaultBadRequestException& e)  // Specific catch
+    catch (const HomevaultBadRequestException& e)
     {
-        return ResultValue<DirectoryListing>(
-            Status::eInvalidArgument, e.what());  // Use exception message
+        return ResultValue<DirectoryListing>(Status::eInvalidArgument,
+                                             e.what());
     }
-    catch (const HomevaultApiException& e)  // Catch other API errors
+    catch (const HomevaultApiException& e)
     {
-        // Use status code from exception if available, otherwise default to
-        // UnknownError
         Status status = Status::eUnknownError;
         if (e.getStatusCode() == 404)
             status = Status::eNotFound;
         else if (e.getStatusCode() == 400)
             status = Status::eInvalidArgument;
-        // Add more specific mappings if needed
 
         return ResultValue<DirectoryListing>(
-            status, "Server error: " + std::string(e.what()));  //
+            status, "Server error: " + std::string(e.what()));
     }
-    // Catch standard exceptions
     catch (const std::invalid_argument& e)
     {
         return ResultValue<DirectoryListing>(
             Status::eInvalidArgument,
             "Invalid argument: " + std::string(e.what()));
     }
-    // Catch any other unexpected exceptions
     catch (const std::exception& e)
     {
         return ResultValue<DirectoryListing>(
@@ -97,14 +87,12 @@ Result Homevault::upload(const std::filesystem::path& local_path,
 {
     try
     {
-        // Basic validation - check if path exists
         if (!std::filesystem::exists(local_path))
         {
             return Result(Status::eInvalidArgument,
                           "Path not found: " + local_path.string());
         }
 
-        // Normalize remote directory path
         std::string remoteDirStr = remote_dir_path.string();
         if (remoteDirStr.empty())
         {

@@ -35,7 +35,7 @@ FileItem FileItem::fromJson(const nlohmann::json& json)
     if (json.contains("size") &&
         !json["size"].is_null())  // Check existence and null
     {
-        item.size = json["size"].get<size_t>();  //
+        item.size = json["size"].get<size_t>();
     }
 
     // Original used "lastModifiedAt", OpenAPI uses "modified_at" - Assuming API
@@ -221,7 +221,7 @@ nlohmann::json UploadResponse::toJson() const
     return json;
 }
 
-UploadResponse UploadResponse::fromJson(const nlohmann::json& json)  //
+UploadResponse UploadResponse::fromJson(const nlohmann::json& json)
 {
     UploadResponse response;
     // Assuming the API returns the full path in the 'path' field on success
@@ -250,7 +250,7 @@ void ErrorResponse::throwIfError(const nlohmann::json& json)
 {
     // This logic is typically handled within the ApiClient::get method now
     // based on status codes, but could be used as a secondary check.
-    if (json.contains("error"))  //
+    if (json.contains("error"))
     {
         // Could throw a generic HomevaultApiException here if needed
         // ErrorResponse error = ErrorResponse::fromJson(json);
