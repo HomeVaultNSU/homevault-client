@@ -36,19 +36,19 @@ void Upload(const std::vector<std::string>& files, hv::Homevault& hvClient)
     }
 }
 
-void Download(const std::vector<std::string>& files, hv::Homevault& hvClient)
+void Download(const std::vector<std::string>& remoteFilePaths, hv::Homevault& hvClient)
 {
-    for (const auto& file : files)
+    for (const auto& remotePath : remoteFilePaths)
     {
-        auto result = hvClient.download(file, ".");
+        auto result = hvClient.download(".", remotePath);
         if (result.status() != hv::Status::eSuccess)
         {
-            std::cerr << "Failed to download " << file << ": "
+            std::cerr << "Failed to download " << remotePath << ": "
                       << result.message() << "\n";
         }
         else
         {
-            std::cout << "Successfully downloaded " << file << "\n";
+            std::cout << "Successfully downloaded " << remotePath << "\n";
         }
     }
 }
@@ -83,6 +83,9 @@ void SetupDownloadSubcommand(CLI::App& app, hv::Homevault& hvClient,
                              CLISetup::DownloadStorage& downloadStorage)
 {
     auto download = app.add_subcommand("download", "Download file from server");
+    download->add_option("files", downloadStorage.files, "Files to download")
+        ->required()
+        ->expected(-1);  // Allow multiple files
     download->callback([&]() { Download(downloadStorage.files, hvClient); });
 }
 }  // namespace CLISetup

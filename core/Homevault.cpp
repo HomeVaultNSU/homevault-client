@@ -4,6 +4,8 @@
 #include <core/Models.hpp>
 #include <core/Result.hpp>
 #include <memory>
+#include <fstream>
+#include <filesystem>
 
 namespace hv
 {
@@ -187,10 +189,18 @@ Result Homevault::upload(const std::filesystem::path& local_path,
     }
 }
 
-Result Homevault::download(
-    [[maybe_unused]] const std::filesystem::path& local_path,
-    [[maybe_unused]] const std::filesystem::path& remote_path)
+Result Homevault::download(const std::filesystem::path& local_path,
+                           const std::filesystem::path& remote_path)
 {
+    if (!std::filesystem::is_directory(local_path)) {
+        return Result(Status::eInvalidArgument, "local path should be a dir");
+    }
+
+    std::vector<uint8_t> file = m_apiClient->downloadFile(remote_path);
+
+    std::ofstream out(local_path / remote_path.filename());
+    out.write(reinterpret_cast<char *>(file.data()), file.size());
+
     return Status::eSuccess;
 }
 
