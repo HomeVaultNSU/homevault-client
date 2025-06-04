@@ -15,7 +15,10 @@ class ApiClient;
 class Homevault
 {
 public:
-    explicit Homevault(const std::string& hostname);
+    explicit Homevault(const std::string& fileServerHostname,
+                       const std::string& authServerHostname,
+                       const std::string& username,
+                       const std::string& password);
     ~Homevault();
 
     /**
@@ -26,17 +29,20 @@ public:
     ResultValue<DirectoryListing> listRemoteFiles(const std::string& path = "/",
                                                   int depth = -1);
 
-    Result upload(
-        const std::filesystem::path& local_path,  // Use filesystem::path
-        const std::filesystem::path& remote_dir_path =
-            "/");  // Target is a directory path
+    Result upload(const std::filesystem::path& local_path,
+                  const std::filesystem::path& remote_dir_path = "/");
 
     Result download(const std::filesystem::path& local_path,
                     const std::filesystem::path& remote_path);
 
+    Result registerUser(const std::string& username,
+                        const std::string& password);
+
 private:
     std::string normalizePath(const std::string& path);
-    std::unique_ptr<ApiClient> m_apiClient;
+
+    std::unique_ptr<ApiClient> m_fileServerClient;
+    std::unique_ptr<ApiClient> m_authServerClient;
 };
 
 }  // namespace hv

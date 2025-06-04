@@ -100,6 +100,99 @@ public:
     }  // Default to 500 if not specified
 };
 
+class TokenResponse
+{
+public:
+    std::string token;
+
+    // Constructor
+    TokenResponse() = default;
+    TokenResponse(const std::string& token) : token(token) {}
+
+    // JSON serialization/deserialization
+    static TokenResponse fromJson(const nlohmann::json& json)
+    {
+        TokenResponse response;
+        if (json.contains("token") && json["token"].is_string())
+        {
+            response.token = json["token"].get<std::string>();
+        }
+        else
+        {
+            throw std::invalid_argument("Invalid TokenResponse JSON: missing or invalid 'token' field");
+        }
+        return response;
+    }
+
+    nlohmann::json toJson() const
+    {
+        nlohmann::json json;
+        json["token"] = token;
+        return json;
+    }
+};
+
+class DecodedTokenResponse
+{
+public:
+    int64_t userId;
+    std::string role;
+
+    // Constructor
+    DecodedTokenResponse() = default;
+    DecodedTokenResponse(int64_t userId, const std::string& role) 
+        : userId(userId), role(role) {}
+
+    // JSON serialization/deserialization
+    static DecodedTokenResponse fromJson(const nlohmann::json& json)
+    {
+        DecodedTokenResponse response;
+        
+        if (json.contains("userId") && json["userId"].is_number_integer())
+        {
+            response.userId = json["userId"].get<int64_t>();
+        }
+        else
+        {
+            throw std::invalid_argument("Invalid DecodedTokenResponse JSON: missing or invalid 'userId' field");
+        }
+
+        if (json.contains("role") && json["role"].is_string())
+        {
+            response.role = json["role"].get<std::string>();
+        }
+        else
+        {
+            throw std::invalid_argument("Invalid DecodedTokenResponse JSON: missing or invalid 'role' field");
+        }
+
+        return response;
+    }
+
+    nlohmann::json toJson() const
+    {
+        nlohmann::json json;
+        json["userId"] = userId;
+        json["role"] = role;
+        return json;
+    }
+};
+
+// 401 Unauthorized - Authentication failed or token invalid
+class HomevaultUnauthorizedException : public HomevaultApiException
+{
+public:
+    explicit HomevaultUnauthorizedException(const std::string& message)
+        : HomevaultApiException("Unauthorized: " + message) {}
+};
+
+// 409 Conflict - Resource conflict (e.g., username already exists)
+class HomevaultConflictException : public HomevaultApiException
+{
+public:
+    explicit HomevaultConflictException(const std::string& message)
+        : HomevaultApiException("Conflict: " + message) {}
+};
 }  // namespace hv
 
 #endif  // !MODELS_HPP

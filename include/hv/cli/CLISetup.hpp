@@ -34,6 +34,9 @@ void SetupUploadSubcommand(CLI::App& app, hv::Homevault& hvClient,
 
 void SetupDownloadSubcommand(CLI::App& app, hv::Homevault& hvClient,
                              CLISetup::DownloadStorage& downloadStorage);
+
+void SetupRegisterSubcommand(CLI::App& app, hv::Homevault& hvClient);
+
 }  // namespace CLISetup
 
 #endif  // !CLISETUP_HPP

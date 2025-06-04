@@ -1,6 +1,7 @@
 #include "hv/cli/CLISetup.hpp"
 
 #include <core/Homevault.hpp>
+#include <cstdlib>
 #include <iostream>
 #include <vector>
 
@@ -36,7 +37,8 @@ void Upload(const std::vector<std::string>& files, hv::Homevault& hvClient)
     }
 }
 
-void Download(const std::vector<std::string>& remoteFilePaths, hv::Homevault& hvClient)
+void Download(const std::vector<std::string>& remoteFilePaths,
+              hv::Homevault& hvClient)
 {
     for (const auto& remotePath : remoteFilePaths)
     {
@@ -51,6 +53,36 @@ void Download(const std::vector<std::string>& remoteFilePaths, hv::Homevault& hv
             std::cout << "Successfully downloaded " << remotePath << "\n";
         }
     }
+}
+
+int Register(hv::Homevault& hvClient)
+{
+    std::string username;
+    std::string password;
+    std::string passwordConfirmation;
+
+    std::cout << "Username: ";
+    std::cin >> username;
+    std::cout << "Password: ";
+    std::cin >> password;
+    std::cout << "Password confirmation: ";
+    std::cin >> passwordConfirmation;
+
+    if (password != passwordConfirmation)
+    {
+        std::cout << "Passwords do not match\n";
+        return EXIT_FAILURE;
+    }
+
+    hv::Result result = hvClient.registerUser(username, password);
+    if (result.status() != hv::Status::eSuccess)
+    {
+        std::cerr << result.message();
+        return EXIT_FAILURE;
+    }
+
+    std::cout << "User created successfully\n";
+    return EXIT_SUCCESS;
 }
 
 void SetupListSubcommand(CLI::App& app, hv::Homevault& hvClient,
@@ -87,5 +119,11 @@ void SetupDownloadSubcommand(CLI::App& app, hv::Homevault& hvClient,
         ->required()
         ->expected(-1);  // Allow multiple files
     download->callback([&]() { Download(downloadStorage.files, hvClient); });
+}
+
+void SetupRegisterSubcommand(CLI::App& app, hv::Homevault& hvClient)
+{
+    auto registerCmd = app.add_subcommand("register", "Add user to server");
+    registerCmd->callback([&]() { Register(hvClient); });
 }
 }  // namespace CLISetup

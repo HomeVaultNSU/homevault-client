@@ -10,11 +10,17 @@
 
 #include "hv/cli/CLISetup.hpp"
 
-std::string GetEnvVar(std::string const& key)
+std::string RequireEnvVar(std::string const& key)
 {
     char const* val = std::getenv(key.c_str());
-    std::string result = val == NULL ? std::string() : std::string(val);
-    return result;
+    if (!val)
+    {
+        std::cerr << "Error: " << key << " environment variable is not set"
+                  << std::endl;
+        return "";
+    }
+
+    return val;
 }
 
 int main(int argc, char* argv[])
@@ -22,40 +28,28 @@ int main(int argc, char* argv[])
     CLI::App app{"homevault-cli"};
     app.require_subcommand(1);
 
-    std::string hostname = GetEnvVar("HV_HOSTNAME");
-    if (hostname.empty())
+    std::string fileServerHostname = RequireEnvVar("HV_FILE_HOSTNAME");
+    std::string authServerHostname = RequireEnvVar("HV_AUTH_HOSTNAME");
+    std::string username = RequireEnvVar("HV_USERNAME");
+    std::string password = RequireEnvVar("HV_PASSWORD");
+
+    if (fileServerHostname.empty() || authServerHostname.empty() ||
+        username.empty() || password.empty())
     {
-        std::cerr << "Error: HV_HOSTNAME environment variable is not set"
-                  << std::endl;
         return EXIT_FAILURE;
     }
 
-    std::string username = GetEnvVar("HV_USERNAME");
-    std::string password = GetEnvVar("HV_PASSWORD");
-
-    std::unique_ptr<hv::Homevault> hvClient;
-
-    if (!username.empty())
-    {
-        if (password.empty())
-        {
-            std::cerr << "Error: no password provided for user \"" << username
-                      << "\" on hostname \"" << hostname << "\"." << std::endl;
-            return EXIT_FAILURE;
-        }
-        hvClient = std::make_unique<hv::Homevault>(hostname);
-    }
-    else
-    {
-        hvClient = std::make_unique<hv::Homevault>(hostname);
-    }
+    std::unique_ptr<hv::Homevault> hvClient = std::make_unique<hv::Homevault>(
+        fileServerHostname, authServerHostname, username, password);
 
     static CLISetup::ListStorage listStorage;
     static CLISetup::UploadStorage uploadStorage;
     static CLISetup::DownloadStorage downloadStorage;
+
     CLISetup::SetupListSubcommand(app, *hvClient, listStorage);
     CLISetup::SetupUploadSubcommand(app, *hvClient, uploadStorage);
     CLISetup::SetupDownloadSubcommand(app, *hvClient, downloadStorage);
+    CLISetup::SetupRegisterSubcommand(app, *hvClient);
 
     CLI11_PARSE(app, argc, argv);
 

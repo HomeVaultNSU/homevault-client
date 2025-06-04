@@ -3,16 +3,20 @@
 #include <core/Homevault.hpp>
 #include <core/Models.hpp>
 #include <core/Result.hpp>
-#include <memory>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
+#include <memory>
+#include <string>
 
 namespace hv
 {
 
-Homevault::Homevault(const std::string& hostname)
+Homevault::Homevault(const std::string& fileServerHostname,
+                     const std::string& authServerHostname,
+                     const std::string& username, const std::string& password)
 {
-    m_apiClient = std::make_unique<ApiClient>(hostname);
+    m_fileServerClient = std::make_unique<ApiClient>(fileServerHostname, username, password);
+    m_authServerClient = std::make_unique<ApiClient>(authServerHostname, username, password);
 }
 
 Homevault::~Homevault() = default;
@@ -43,7 +47,7 @@ ResultValue<DirectoryListing> Homevault::listRemoteFiles(
     {
         std::string normalizedPath = normalizePath(path);
 
-        FileSystemCrawler filesystemCrawler(*m_apiClient);
+        FileSystemCrawler filesystemCrawler(*m_fileServerClient);
 
         DirectoryListing listing =
             filesystemCrawler.getDirectoryTreeWithDepth(normalizedPath, depth);
@@ -109,8 +113,8 @@ Result Homevault::upload(const std::filesystem::path& local_path,
         if (std::filesystem::is_regular_file(local_path))
         {
             // Single file upload
-            UploadResponse response =
-                m_apiClient->uploadFile(local_path.string(), remoteDirStr);
+            UploadResponse response = m_fileServerClient->uploadFile(
+                local_path.string(), remoteDirStr);
             return Result(Status::eSuccess,
                           "File uploaded successfully to: " + response.path);
         }
@@ -138,8 +142,9 @@ Result Homevault::upload(const std::filesystem::path& local_path,
                     // Upload file to corresponding remote directory
                     try
                     {
-                        UploadResponse response = m_apiClient->uploadFile(
-                            entry.path().string(), targetDir);
+                        UploadResponse response =
+                            m_fileServerClient->uploadFile(
+                                entry.path().string(), targetDir);
                     }
                     catch (const HomevaultApiException& e)
                     {
@@ -192,16 +197,31 @@ Result Homevault::upload(const std::filesystem::path& local_path,
 Result Homevault::download(const std::filesystem::path& local_path,
                            const std::filesystem::path& remote_path)
 {
-    if (!std::filesystem::is_directory(local_path)) {
+    if (!std::filesystem::is_directory(local_path))
+    {
         return Result(Status::eInvalidArgument, "local path should be a dir");
     }
 
-    std::vector<uint8_t> file = m_apiClient->downloadFile(remote_path);
+    std::vector<uint8_t> file = m_fileServerClient->downloadFile(remote_path);
 
     std::ofstream out(local_path / remote_path.filename());
-    out.write(reinterpret_cast<char *>(file.data()), file.size());
+    out.write(reinterpret_cast<char*>(file.data()), file.size());
 
     return Status::eSuccess;
+}
+
+Result Homevault::registerUser(const std::string& username,
+                               const std::string& password)
+{
+    try
+    {
+        m_authServerClient->registerUser(username, password);
+        return Status::eSuccess;
+    }
+    catch (const HomevaultApiException& e)
+    {
+        return Result(Status::eUnknownError, e.what());
+    }
 }
 
 };  // namespace hv

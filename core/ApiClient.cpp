@@ -12,7 +12,9 @@
 namespace hv
 {
 
-ApiClient::ApiClient(const std::string& baseUrl) : baseUrl(baseUrl)
+ApiClient::ApiClient(const std::string& baseUrl, const std::string& username,
+                     const std::string& password)
+    : baseUrl(baseUrl), username(username), password(password)
 {
     curlpp::initialize();
 }
@@ -26,7 +28,7 @@ DirectoryListing ApiClient::getDirectoryListing(const std::string& path,
 
     try
     {
-        nlohmann::json response = get("/list", params);
+        nlohmann::json response = get("/list", params, {getAuthorizationHeader()});
         return DirectoryListing::fromJson(response);
     }
     catch (const curlpp::RuntimeError& e)
@@ -48,8 +50,7 @@ UploadResponse ApiClient::uploadFile(const std::string& filePath,
     try
     {
         // Call the helper function that handles multipart POST
-        nlohmann::json response =
-            postMultipart("/upload", filePath, params);
+        nlohmann::json response = postMultipart("/upload", filePath, params, {getAuthorizationHeader()});
         return UploadResponse::fromJson(
             response);  // Parse the success response
     }
@@ -76,7 +77,7 @@ std::vector<uint8_t> ApiClient::downloadFile(const std::string& path)
 
     try
     {
-        return getBinary("/download", params);
+        return getBinary("/download", params, {getAuthorizationHeader()});
     }
     catch (const curlpp::RuntimeError& e)
     {
@@ -85,8 +86,70 @@ std::vector<uint8_t> ApiClient::downloadFile(const std::string& path)
     }
 }
 
+void ApiClient::registerUser(const std::string& username,
+                             const std::string& password)
+{
+    nlohmann::json requestData;
+    requestData["username"] = username;
+    requestData["password"] = password;
+
+    try
+    {
+        nlohmann::json response = postJson("/auth", requestData);
+        // Registration endpoint returns 201 with no body on success
+        // If we get here without exception, registration was successful
+    }
+    catch (const curlpp::RuntimeError& e)
+    {
+        throw HomevaultServerException(
+            std::string("Network error during registration: ") + e.what());
+    }
+}
+
+TokenResponse ApiClient::login(const std::string& username,
+                               const std::string& password)
+{
+    nlohmann::json requestData;
+    requestData["username"] = username;
+    requestData["password"] = password;
+
+    try
+    {
+        // this is FUCKING AWFUL, architecture is broken, authentication was
+        // added at the last day before project submission, so i don't care
+        size_t colonPos = baseUrl.rfind(':');
+        baseUrl = baseUrl.substr(0, colonPos + 1) + "8090";
+
+        nlohmann::json response = putJson("/auth", requestData);
+        baseUrl = baseUrl.substr(0, colonPos + 1) + "8080";
+        return TokenResponse::fromJson(response);
+    }
+    catch (const curlpp::RuntimeError& e)
+    {
+        throw HomevaultServerException(
+            std::string("Network error during login: ") + e.what());
+    }
+}
+
+DecodedTokenResponse ApiClient::decodeToken(const std::string& token)
+{
+    nlohmann::json requestData;
+    requestData["token"] = token;
+
+    try
+    {
+        nlohmann::json response = putJson("/auth", requestData);
+        return DecodedTokenResponse::fromJson(response);
+    }
+    catch (const curlpp::RuntimeError& e)
+    {
+        throw HomevaultServerException(
+            std::string("Network error during token decode: ") + e.what());
+    }
+}
+
 nlohmann::json ApiClient::get(const std::string& endpoint,
-                              const std::map<std::string, std::string>& params)
+                              const std::map<std::string, std::string>& params, const std::list<std::string>& headers)
 {
     std::string url = buildUrl(endpoint, params);
 
@@ -94,6 +157,7 @@ nlohmann::json ApiClient::get(const std::string& endpoint,
     {
         curlpp::Easy request;
         request.setOpt(curlpp::options::Url(url));
+        request.setOpt(curlpp::options::HttpHeader(headers));
 
         std::ostringstream responseStream;
         request.setOpt(curlpp::options::WriteStream(&responseStream));
@@ -146,7 +210,7 @@ nlohmann::json ApiClient::get(const std::string& endpoint,
 
 std::vector<uint8_t> ApiClient::getBinary(
     const std::string& endpoint,
-    const std::map<std::string, std::string>& params)
+    const std::map<std::string, std::string>& params, const std::list<std::string>& headers)
 {
     std::string url = buildUrl(endpoint, params);
 
@@ -154,6 +218,7 @@ std::vector<uint8_t> ApiClient::getBinary(
     {
         curlpp::Easy request;
         request.setOpt(curlpp::options::Url(url));
+        request.setOpt(curlpp::options::HttpHeader(headers));
 
         std::ostringstream responseStream;
         request.setOpt(curlpp::options::WriteStream(&responseStream));
@@ -205,7 +270,7 @@ std::vector<uint8_t> ApiClient::getBinary(
 }
 
 nlohmann::json ApiClient::post(const std::string& endpoint,
-                               const std::map<std::string, std::string>& params)
+                               const std::map<std::string, std::string>& params, const std::list<std::string>& headers)
 {
     std::string url = buildUrl(endpoint);
 
@@ -213,6 +278,7 @@ nlohmann::json ApiClient::post(const std::string& endpoint,
     {
         curlpp::Easy request;
         request.setOpt(curlpp::options::Url(url));
+        request.setOpt(curlpp::options::HttpHeader(headers));
 
         // Prepare post fields
         std::list<std::string> postFields;
@@ -278,9 +344,8 @@ nlohmann::json ApiClient::post(const std::string& endpoint,
     }
 }
 
-nlohmann::json ApiClient::postMultipart(
-    const std::string& endpoint, const std::string& filePath,
-    const std::map<std::string, std::string>& params)
+nlohmann::json ApiClient::postJson(const std::string& endpoint,
+                                   const nlohmann::json& jsonData, const std::list<std::string>& headers)
 {
     std::string url = buildUrl(endpoint);
 
@@ -288,6 +353,189 @@ nlohmann::json ApiClient::postMultipart(
     {
         curlpp::Easy request;
         request.setOpt(curlpp::options::Url(url));
+
+        auto headersAltered = headers;
+        headersAltered.push_back("Content-Type: application/json");
+        request.setOpt(curlpp::options::HttpHeader(headersAltered));
+
+        // Convert JSON to string
+        std::string jsonString = jsonData.dump();
+        request.setOpt(curlpp::options::PostFields(jsonString));
+        request.setOpt(curlpp::options::PostFieldSize(jsonString.length()));
+
+        std::ostringstream responseStream;
+        request.setOpt(curlpp::options::WriteStream(&responseStream));
+
+        request.perform();
+
+        long responseCode = curlpp::infos::ResponseCode::get(request);
+        std::string responseBody = responseStream.str();
+
+        // Handle different success codes for different endpoints
+        if (responseCode == 201)
+        {
+            // For registration (201 Created), response might be empty
+            if (responseBody.empty())
+            {
+                return nlohmann::json::object();  // Return empty JSON object
+            }
+        }
+        else if (responseCode >= 400)
+        {
+            // Handle error responses
+            if (!responseBody.empty())
+            {
+                try
+                {
+                    nlohmann::json jsonResponse =
+                        nlohmann::json::parse(responseBody);
+                    std::string errorMsg = "Unknown error";
+                    if (jsonResponse.contains("error") &&
+                        jsonResponse["error"].is_string())
+                    {
+                        errorMsg = jsonResponse["error"].get<std::string>();
+                    }
+
+                    if (responseCode == 400)
+                    {
+                        throw HomevaultBadRequestException(errorMsg);
+                    }
+                    else if (responseCode == 401)
+                    {
+                        throw HomevaultUnauthorizedException(errorMsg);
+                    }
+                    else if (responseCode == 409)
+                    {
+                        throw HomevaultConflictException(errorMsg);
+                    }
+                    else
+                    {
+                        throw HomevaultServerException(errorMsg);
+                    }
+                }
+                catch (const nlohmann::json::parse_error& e)
+                {
+                    throw HomevaultServerException(
+                        "Server returned invalid error response");
+                }
+            }
+            else
+            {
+                throw HomevaultServerException(
+                    "Server returned error with empty response");
+            }
+        }
+
+        // Parse successful response
+        if (!responseBody.empty())
+        {
+            return nlohmann::json::parse(responseBody);
+        }
+        else
+        {
+            return nlohmann::json::object();
+        }
+    }
+    catch (const nlohmann::json::parse_error& e)
+    {
+        throw HomevaultServerException(std::string("JSON parse error: ") +
+                                       e.what());
+    }
+    catch (const curlpp::RuntimeError& e)
+    {
+        throw HomevaultServerException(std::string("Network error: ") +
+                                       e.what());
+    }
+}
+
+nlohmann::json ApiClient::putJson(const std::string& endpoint,
+                                  const nlohmann::json& jsonData, const std::list<std::string>& headers)
+{
+    std::string url = buildUrl(endpoint);
+
+    try
+    {
+        curlpp::Easy request;
+        request.setOpt(curlpp::options::Url(url));
+        request.setOpt(curlpp::options::HttpHeader(headers));
+
+        // Set HTTP method to PUT
+        request.setOpt(curlpp::options::CustomRequest("PUT"));
+
+        // Set content type to JSON
+        std::list<std::string> headers;
+        headers.push_back("Content-Type: application/json");
+        request.setOpt(curlpp::options::HttpHeader(headers));
+
+        // Convert JSON to string
+        std::string jsonString = jsonData.dump();
+        request.setOpt(curlpp::options::PostFields(jsonString));
+        request.setOpt(curlpp::options::PostFieldSize(jsonString.length()));
+
+        std::ostringstream responseStream;
+        request.setOpt(curlpp::options::WriteStream(&responseStream));
+
+        request.perform();
+
+        long responseCode = curlpp::infos::ResponseCode::get(request);
+        std::string responseBody = responseStream.str();
+
+        if (responseBody.empty())
+        {
+            throw HomevaultServerException("Empty response from server");
+        }
+
+        nlohmann::json jsonResponse = nlohmann::json::parse(responseBody);
+
+        // Check for error responses
+        if (responseCode >= 400)
+        {
+            std::string errorMsg = "Unknown error";
+            if (jsonResponse.contains("error") &&
+                jsonResponse["error"].is_string())
+            {
+                errorMsg = jsonResponse["error"].get<std::string>();
+            }
+
+            if (responseCode == 401)
+            {
+                throw HomevaultUnauthorizedException(errorMsg);
+            }
+            else if (responseCode == 400)
+            {
+                throw HomevaultBadRequestException(errorMsg);
+            }
+            else
+            {
+                throw HomevaultServerException(errorMsg);
+            }
+        }
+
+        return jsonResponse;
+    }
+    catch (const nlohmann::json::parse_error& e)
+    {
+        throw HomevaultServerException(std::string("JSON parse error: ") +
+                                       e.what());
+    }
+    catch (const curlpp::RuntimeError& e)
+    {
+        throw HomevaultServerException(std::string("Network error: ") +
+                                       e.what());
+    }
+}
+
+nlohmann::json ApiClient::postMultipart(
+    const std::string& endpoint, const std::string& filePath,
+    const std::map<std::string, std::string>& params, const std::list<std::string>& headers)
+{
+    std::string url = buildUrl(endpoint);
+
+    try
+    {
+        curlpp::Easy request;
+        request.setOpt(curlpp::options::Url(url));
+        request.setOpt(curlpp::options::HttpHeader(headers));
 
         curlpp::Forms formParts;
 
@@ -398,8 +646,7 @@ nlohmann::json ApiClient::postMultipart(
                e)  // JSON parsing errors on response
     {
         throw HomevaultServerException(
-            std::string("JSON parse error on upload response: ") +
-            e.what());
+            std::string("JSON parse error on upload response: ") + e.what());
     }
     // Let curlpp::RuntimeError and std::ifstream::failure propagate up
 }
@@ -439,6 +686,16 @@ void ApiClient::handleErrorResponse(const std::string& response)
     {
         throw HomevaultServerException("Failed to parse error response");
     }
+}
+
+std::string ApiClient::getAuthorizationHeader()
+{
+    if (!authToken.has_value())
+    {
+        authToken = login(username, password).token;
+    }
+
+    return "Authorization: Bearer " + *authToken;
 }
 
 }  // namespace hv
