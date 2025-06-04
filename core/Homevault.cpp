@@ -15,8 +15,10 @@ Homevault::Homevault(const std::string& fileServerHostname,
                      const std::string& authServerHostname,
                      const std::string& username, const std::string& password)
 {
-    m_fileServerClient = std::make_unique<ApiClient>(fileServerHostname, username, password);
-    m_authServerClient = std::make_unique<ApiClient>(authServerHostname, username, password);
+    m_fileServerClient =
+        std::make_unique<ApiClient>(fileServerHostname, username, password);
+    m_authServerClient =
+        std::make_unique<ApiClient>(authServerHostname, username, password);
 }
 
 Homevault::~Homevault() = default;
@@ -137,7 +139,7 @@ Result Homevault::upload(const std::filesystem::path& local_path,
                     auto relPath =
                         std::filesystem::relative(entry.path(), local_path);
                     auto targetDir =
-                        remoteDirStr + "/" + relPath.parent_path().string();
+                        remoteDirStr + relPath.parent_path().string();
 
                     // Upload file to corresponding remote directory
                     try
